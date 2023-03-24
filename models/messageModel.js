@@ -11,6 +11,11 @@ export const messageModel = types
         read: types.boolean,
         sent: types.maybe(types.boolean)
     })
+    .actions(self => ({
+        setRead() {
+            self.read = true
+        }
+    }))
     .views(self => ({
         get time() {
             return moment.utc(self['created']).tz(timezone).format('HH:mm')

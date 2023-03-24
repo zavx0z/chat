@@ -14,7 +14,7 @@ const DialogsPanel = ({dialogs, dialogJoin, dialogLeave}) => {
     useEffect(() => {
         dialogId && dialogJoin(dialogId)
         return () => dialogLeave(dialogId)
-    }, [dialogId, dialogLeave])
+    }, [dialogId, dialogLeave, dialogJoin])
     return <>
         <TextField
             fullWidth

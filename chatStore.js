@@ -1,52 +1,60 @@
 import {sioAfterCreate, sioMiddleware} from "../../middleware/sioMiddleware"
-import {applyPatch} from "mobx-state-tree"
+import {applyPatch, getPath} from "mobx-state-tree"
 import channel from "./channels"
-import action from "./actions/action"
-import {dialogJoin, dialogRead, dialogWrite} from "./actions/dialogActions"
-
+import action from "./action"
 
 const receive = (store) => sioAfterCreate(store, (sio, store) => {
-    sio.on(channel.CHAT, payload => {
+    sio.on(channel.CHAT, payload => {  // STATIC
         switch (payload.action) {
             case 'init':
                 sio.emit(channel.USERS, {
                     action: action.GET,
                     data: payload.data.map(({id}) => id)
                 })
-                applyPatch(store, {
-                    op: 'replace',
-                    path: '/dialogs',
-                    value: payload.data
-                })
+                applyPatch(store, {op: 'replace', path: '/dialogs', value: payload.data})
                 break
             default:
                 break
         }
+    })
+    sio.on(channel.USERS, data => { // STATIC
+        applyPatch(store, {op: 'replace', path: '/users', value: data})
     })
     sio.on(channel.DIALOG, payload => {
         const dialog = store.getDialog(payload.data.dialogId)
         switch (payload.action) {
-            case action.JOIN:
-                dialogJoin(store, dialog, payload.data)
+            case action.UPDATE: // STATIC
+                console.log(payload)
                 break
-            case action.LEAVE:
+            case action.JOIN: // DYNAMIC
+                // TODO: добавлять applyPatch(dialog, {op: 'add', path: '/messages/-', value: payload.data.messages})
+                applyPatch(dialog, {op: 'replace', path: '/messages', value: payload.data.messages})
+                applyPatch(store, {op: 'replace', path: '/joinedDialog', value: dialog})
                 break
-            case action.UPDATE:
+            case action.WRITE:  // DYNAMIC
+                const {data: {message}} = payload
+                if (message.senderId === store.id) {  // отправленное собой
+                    const selfMessage = dialog.messages.find(msg => msg.text === message.text && msg.sent)
+                    applyPatch(store, {op: 'replace', path: getPath(selfMessage), value: message})
+                } else { // отправленное собеседником
+                    dialog.addMessage(message)
+                    dialog.incUnreadMessages()
+                }
+                dialog.incTotalMessages()
+                dialog.setLastMessageSenderId(message.senderId)
+                dialog.setLastMessageText(message.text)
+                dialog.setLastMessageTime(message.created)
                 break
-            case action.WRITE:
-                dialogWrite(store, dialog, payload.data)
-                break
-            case action.READ:
-                dialogRead(store, dialog, payload.data)
+            case action.READ: // DYNAMIC
+                payload.data.messageIds.forEach(msgId => dialog.messages.find(msg => msg.id === msgId)
+                    .setRead())
+                dialog.resetUnreadMessages()
                 break
             default:
                 break
         }
     })
-    // console.log(sio.listeners(CHANNEL_DIALOG).length)
-    sio.on(channel.MESSAGE, data => store.getDialog(data.dialogId).addMessage(data.message))
-    sio.on(channel.USERS, data => applyPatch(store, {op: 'replace', path: '/users', value: data}))
-    sio.emit(channel.CHAT, {action: 'init'})
+    sio.emit(channel.CHAT, {action: 'init'})  // static
 })
 const send = (store) => sioMiddleware(store, [
     {

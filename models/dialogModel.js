@@ -9,7 +9,6 @@ export const Dialog = types
         name: types.string,
         ownerId: types.number,
         messages: types.array(messageModel),
-
         totalMessages: types.number,
         unreadMessages: types.number,
         lastMessageText: types.string,
@@ -17,6 +16,24 @@ export const Dialog = types
         lastMessageSenderId: types.number,
     })
     .actions(self => ({
+        incUnreadMessages() {
+            self.unreadMessages += self.unreadMessages
+        },
+        resetUnreadMessages() {
+            self.unreadMessages = 0
+        },
+        incTotalMessages() {
+            self.totalMessages += self.totalMessages
+        },
+        setLastMessageText(text) {
+            self.lastMessageText = text
+        },
+        setLastMessageTime(isoString) {
+            self.lastMessageTime = isoString
+        },
+        setLastMessageSenderId(senderId) {
+            self.lastMessageSenderId = senderId
+        },
         addMessage(data) {
             self['messages'].push(messageModel.create(data))
         },
@@ -32,7 +49,6 @@ export const Dialog = types
         },
         readMessage() {
             if (self['unreadMessages']) {
-                console.log('readMessage')
                 let unread = []
                 self['messages'].forEach(message => (!message.isSentByMe && !message.read && unread.push(message.id)))
                 return {dialogId: self['id'], messageIds: unread}

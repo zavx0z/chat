@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react'
+import React from 'react'
 import Box from "@mui/material/Box"
 import {Route, Routes} from "react-router-dom"
 import {inject, observer} from "mobx-react"
@@ -26,9 +26,6 @@ const chatBlock = {
 }
 const SupportsAdmin = ({user: {id, dialogLeave, dialogJoin, joinedDialog, dialogs}}) => {
     const panel = <DialogsPanel dialogs={dialogs} dialogJoin={dialogJoin} dialogLeave={dialogLeave}/>
-    useEffect(() => {
-        console.log(joinedDialog?.messagesByDay)
-    }, [joinedDialog])
     return <Box sx={main}>
         <Box sx={leftPanel}>
             <Routes>
