@@ -17,13 +17,13 @@ export const Dialog = types
     })
     .actions(self => ({
         incUnreadMessages() {
-            self.unreadMessages += self.unreadMessages
+            self.unreadMessages = self.unreadMessages + 1
         },
         resetUnreadMessages() {
             self.unreadMessages = 0
         },
         incTotalMessages() {
-            self.totalMessages += self.totalMessages
+            self.totalMessages = self.totalMessages + 1
         },
         setLastMessageText(text) {
             self.lastMessageText = text
@@ -54,7 +54,6 @@ export const Dialog = types
                     if (!message.isSentByMe && !message.read)
                         unread.push(message.id)
                 })
-                console.log(unread)
                 return unread
             }
         }

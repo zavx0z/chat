@@ -73,7 +73,6 @@ const receive = (store) => sioAfterCreate(store, (sio, store) => {
         const dialog = store.getDialog(payload.data.dialogId)
         switch (payload.action) {
             case action.UPDATE: // STATIC
-                console.log(payload.data)
                 if (payload.data.message.senderId !== store.id)  // отправленное собеседником
                     dialog.incUnreadMessages()
                 dialog.incTotalMessages()
