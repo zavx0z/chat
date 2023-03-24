@@ -46,8 +46,8 @@ const send = (store) => sioMiddleware(store, [
             channel.DIALOG, {
                 action: action.READ,
                 data: {
-                    dialogId: instance.id,
-                    messageIds: args[0]
+                    dialogId: parseInt(instance.id),
+                    messageIds: args
                 }
             })
     },
@@ -73,12 +73,13 @@ const receive = (store) => sioAfterCreate(store, (sio, store) => {
         const dialog = store.getDialog(payload.data.dialogId)
         switch (payload.action) {
             case action.UPDATE: // STATIC
+                console.log(payload.data)
                 if (payload.data.message.senderId !== store.id)  // отправленное собеседником
                     dialog.incUnreadMessages()
                 dialog.incTotalMessages()
-                dialog.setLastMessageSenderId(payload.data.message.senderId)
-                dialog.setLastMessageText(payload.data.message.text)
-                dialog.setLastMessageTime(payload.data.message.created)
+                dialog.setLastMessageSenderId(payload.data.message.lastMessageSenderId)
+                dialog.setLastMessageText(payload.data.message.lastMessageText)
+                dialog.setLastMessageTime(payload.data.message.lastMessageTime)
                 break
             case action.JOIN: // DYNAMIC
                 // TODO: добавлять applyPatch(dialog, {op: 'add', path: '/messages/-', value: payload.data.messages})

@@ -50,7 +50,11 @@ export const Dialog = types
         readMessage() {
             if (self['unreadMessages']) {
                 let unread = []
-                self['messages'].forEach(message => (!message.isSentByMe && !message.read && unread.push(message.id)))
+                self['messages'].forEach(message => {
+                    if (!message.isSentByMe && !message.read)
+                        unread.push(message.id)
+                })
+                console.log(unread)
                 return unread
             }
         }
