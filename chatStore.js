@@ -3,6 +3,55 @@ import {applyPatch, getPath} from "mobx-state-tree"
 import channel from "./channels"
 import action from "./action"
 
+const send = (store) => sioMiddleware(store, [
+    {
+        model: 'user',
+        action: 'dialogJoin',
+        after: ({sio, args}) => sio.emit(
+            channel.DIALOG, {
+                action: action.JOIN,
+                data: {
+                    dialogId: args.id
+                }
+            })
+    },
+    {
+        model: 'user',
+        action: 'dialogLeave',
+        before: ({store}) => applyPatch(store, {op: 'replace', path: '/joinedDialog', value: undefined}),
+        after: ({sio, args}) => args && sio.emit(
+            channel.DIALOG, {
+                action: action.LEAVE,
+                data: {
+                    dialogId: args.id
+                }
+            })
+    },
+    {
+        model: 'dialog',
+        action: 'sendMessage',
+        before: ({sio, args, instance}) => args.length && sio.emit(
+            channel.DIALOG, {
+                action: action.WRITE,
+                data: {
+                    dialogId: instance.id,
+                    text: args[0]
+                }
+            })
+    },
+    {
+        model: 'dialog',
+        action: 'readMessage',
+        after: ({sio, args, instance}) => args && sio.emit(
+            channel.DIALOG, {
+                action: action.READ,
+                data: {
+                    dialogId: instance.id,
+                    messageIds: args[0]
+                }
+            })
+    },
+])
 const receive = (store) => sioAfterCreate(store, (sio, store) => {
     sio.on(channel.CHAT, payload => {  // STATIC
         switch (payload.action) {
@@ -24,7 +73,12 @@ const receive = (store) => sioAfterCreate(store, (sio, store) => {
         const dialog = store.getDialog(payload.data.dialogId)
         switch (payload.action) {
             case action.UPDATE: // STATIC
-                console.log(payload)
+                if (payload.data.message.senderId !== store.id)  // отправленное собеседником
+                    dialog.incUnreadMessages()
+                dialog.incTotalMessages()
+                dialog.setLastMessageSenderId(payload.data.message.senderId)
+                dialog.setLastMessageText(payload.data.message.text)
+                dialog.setLastMessageTime(payload.data.message.created)
                 break
             case action.JOIN: // DYNAMIC
                 // TODO: добавлять applyPatch(dialog, {op: 'add', path: '/messages/-', value: payload.data.messages})
@@ -32,18 +86,11 @@ const receive = (store) => sioAfterCreate(store, (sio, store) => {
                 applyPatch(store, {op: 'replace', path: '/joinedDialog', value: dialog})
                 break
             case action.WRITE:  // DYNAMIC
-                const {data: {message}} = payload
-                if (message.senderId === store.id) {  // отправленное собой
-                    const selfMessage = dialog.messages.find(msg => msg.text === message.text && msg.sent)
-                    applyPatch(store, {op: 'replace', path: getPath(selfMessage), value: message})
-                } else { // отправленное собеседником
-                    dialog.addMessage(message)
-                    dialog.incUnreadMessages()
-                }
-                dialog.incTotalMessages()
-                dialog.setLastMessageSenderId(message.senderId)
-                dialog.setLastMessageText(message.text)
-                dialog.setLastMessageTime(message.created)
+                if (payload.data.message.senderId === store.id) {  // отправленное собой
+                    const selfMessage = dialog.messages.find(msg => msg.text === payload.data.message.text && msg.sent)
+                    applyPatch(store, {op: 'replace', path: getPath(selfMessage), value: payload.data.message})
+                } else  // отправленное собеседником
+                    dialog.addMessage(payload.data.message)
                 break
             case action.READ: // DYNAMIC
                 payload.data.messageIds.forEach(msgId => dialog.messages.find(msg => msg.id === msgId)
@@ -56,29 +103,6 @@ const receive = (store) => sioAfterCreate(store, (sio, store) => {
     })
     sio.emit(channel.CHAT, {action: 'init'})  // static
 })
-const send = (store) => sioMiddleware(store, [
-    {
-        model: 'user',
-        action: 'dialogJoin',
-        after: ({sio, args}) => sio.emit(channel.DIALOG, {action: action.JOIN, data: args.id})
-    },
-    {
-        model: 'user',
-        action: 'dialogLeave',
-        before: ({store}) => applyPatch(store, {op: 'replace', path: '/joinedDialog', value: undefined}),
-        after: ({sio, args}) => args && sio.emit(channel.DIALOG, {action: action.LEAVE, data: args.id})
-    },
-    {
-        model: 'dialog',
-        action: 'sendMessage',
-        before: ({sio, args, instance}) => args.length && sio.emit(channel.DIALOG, {action: action.WRITE, data: {dialogId: instance.id, text: args[0]}})
-    },
-    {
-        model: 'dialog',
-        action: 'readMessage',
-        after: ({sio, args}) => args && sio.emit(channel.DIALOG, {action: action.READ, data: args})
-    },
-])
 const chatStore = (store) => {
     receive(store)
     send(store)
