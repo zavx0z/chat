@@ -1,0 +1,1 @@
+export const scrollBottom = (target) => target.scrollHeight - (target.scrollTop + target.clientHeight)
