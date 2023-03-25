@@ -1,17 +1,12 @@
 import {types} from 'mobx-state-tree'
 import {Dialog} from "./dialogModel"
+import {UsersModel} from "./usersModel"
 
-
-const User = types
-    .model({
-        id: types.identifierNumber,
-        name: types.string,
-    })
 
 const chatModel = types
     .model({
         dialogs: types.array(Dialog),
-        users: types.array(User),
+        users: types.array(UsersModel),
         joinedDialog: types.safeReference(Dialog)
     })
     .volatile(self => ({

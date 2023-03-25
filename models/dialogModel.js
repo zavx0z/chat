@@ -74,6 +74,12 @@ export const Dialog = types
             const user = users.find(user => user.id === self['ownerId'])
             return user.name
         },
+        get owner() {
+            const {users} = getRoot(self)
+            if (!self.ownerId || !users.length) return ''
+            const user = users.find(user => user.id === self['ownerId'])
+            return user
+        },
         get lastMessage() {
             const senderName = self['lastMessageSenderId'] === self['id'] ? "Вы:" : ""
             return `${senderName} ${self['lastMessageText']}`

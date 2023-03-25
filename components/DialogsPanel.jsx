@@ -1,12 +1,14 @@
 import React, {useEffect} from "react"
-import {Box, Chip, List, ListItemAvatar, ListItemSecondaryAction, ListItemText, TextField} from "@mui/material"
+import {List, ListItemAvatar, ListItemSecondaryAction, ListItemText, TextField} from "@mui/material"
 import ListItemButton from "@mui/material/ListItemButton"
-import Avatar from "@mui/material/Avatar"
 import {useNavigate, useParams} from "react-router-dom"
 import routes from "../../../routes/routes"
 import {observer} from "mobx-react"
-import Typography from "@mui/material/Typography"
-import {DoneAll} from "@mui/icons-material"
+import {StatusAvatar} from "./StatusAvatar"
+import {StatisticsUserList} from "./StatisticsUserList"
+import moment from "moment-timezone"
+import {timezone} from "../utils/date"
+
 
 const DialogsPanel = ({dialogs, dialogJoin, dialogLeave}) => {
     const navigate = useNavigate()
@@ -15,6 +17,9 @@ const DialogsPanel = ({dialogs, dialogJoin, dialogLeave}) => {
         dialogId && dialogJoin(dialogId)
         return () => dialogLeave(dialogId)
     }, [dialogId, dialogLeave, dialogJoin])
+    const statusConnected = (isConnected, lastVisit) => {
+        return isConnected ? 'Online' : `Был: ${moment.utc(lastVisit).tz(timezone).startOf("day").format('DD.MM.YYYY')}`
+    }
     return <>
         <TextField
             fullWidth
@@ -31,13 +36,16 @@ const DialogsPanel = ({dialogs, dialogJoin, dialogLeave}) => {
                     selected={parseInt(dialogId) === dialog.id}
                     onClick={() => navigate(routes.chat + '/' + dialog.id)}
                 >
-                    <ListItemAvatar>
-                        <Avatar>
-                            {dialog.username[0]}
-                        </Avatar>
+                    <ListItemAvatar sx={{position: "relative"}}>
+                        <StatusAvatar
+                            username={dialog.username[0]}
+                            isMobile={dialog.owner.isMobile}
+                            isConnected={dialog.owner.isConnected}
+                            deviceModel={dialog.owner.deviceModel}
+                        />
                     </ListItemAvatar>
                     <ListItemText
-                        primary={dialog.username}
+                        primary={dialog.owner.name}
                         primaryTypographyProps={{
                             fontWeight: 'bold',
                         }}
@@ -53,32 +61,11 @@ const DialogsPanel = ({dialogs, dialogJoin, dialogLeave}) => {
                         height: "100%",
                         pt: 2,
                     }}>
-                        <Box sx={{
-                            height: '100%',
-                            width: "100%",
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'flex-end',
-                            // alignContent: 'flex-end',
-                        }}>
-                            <Box sx={{
-                                display: 'flex',
-                                flexDirection: 'row',
-                                flexWrap: 'nowrap',
-                            }}>
-                                <Box>
-                                    {!!!dialog.unreadMessages && <DoneAll sx={{color: "secondary.dark"}} fontSize={'small'}/>}
-                                </Box>
-                                <Box sx={{ml: 1}}>
-                                    <Typography variant={'caption'}>
-                                        {dialog.lastSentDate}
-                                    </Typography>
-                                </Box>
-                            </Box>
-                            <Box sx={{display: "flex", flexDirection: "row"}}>
-                                {!!dialog.unreadMessages && <Chip size={'small'} color={'info'} label={dialog.unreadMessages}/>}
-                            </Box>
-                        </Box>
+                        <StatisticsUserList
+                            lastSentDate={dialog.lastSentDate}
+                            unreadMessages={dialog.unreadMessages}
+                            status={statusConnected(dialog.owner.isConnected, dialog.owner.lastVisit)}
+                        />
                     </ListItemSecondaryAction>
                 </ListItemButton>)}
         </List>
