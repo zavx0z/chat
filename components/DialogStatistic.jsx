@@ -3,7 +3,7 @@ import Typography from "@mui/material/Typography"
 import {DoneAll} from "@mui/icons-material"
 import React from "react"
 
-export const StatisticsUserList = ({lastSentDate, unreadMessages, status}) => {
+export const DialogStatistic = ({lastSentDate, unreadMessages, status}) => {
     return <Box sx={{
         height: '100%',
         width: "100%",
@@ -18,13 +18,7 @@ export const StatisticsUserList = ({lastSentDate, unreadMessages, status}) => {
             flexWrap: 'nowrap',
         }}>
             <Box>
-                <Typography
-                    sx={{
-                        color: "secondary.dark",
-                        mr:1
-                    }}
-                    variant={'caption'}
-                >
+                <Typography sx={{color: "secondary.dark", mr:1}} variant={'caption'}>
                     {status}
                 </Typography>
             </Box>

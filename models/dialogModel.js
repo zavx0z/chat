@@ -14,6 +14,7 @@ export const Dialog = types
         lastMessageText: types.string,
         lastMessageTime: types.string,
         lastMessageSenderId: types.number,
+        participants: types.array(types.integer)
     })
     .actions(self => ({
         incUnreadMessages() {
@@ -68,16 +69,11 @@ export const Dialog = types
                 return acc
             }, {})
         },
-        get username() {
-            const {users} = getRoot(self)
+        get sender() {
+            const {users, id} = getRoot(self)
             if (!self.ownerId || !users.length) return ''
-            const user = users.find(user => user.id === self['ownerId'])
-            return user.name
-        },
-        get owner() {
-            const {users} = getRoot(self)
-            if (!self.ownerId || !users.length) return ''
-            const user = users.find(user => user.id === self['ownerId'])
+            const sender = self.participants.find(item => item !== id)
+            const user = users.find(user => user.id === sender)
             return user
         },
         get lastMessage() {

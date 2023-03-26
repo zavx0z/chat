@@ -2,21 +2,27 @@ import Avatar from "@mui/material/Avatar"
 import {Computer, PhoneAndroid, PhoneIphone} from "@mui/icons-material"
 import React, {useMemo} from "react"
 import Box from "@mui/material/Box"
+import {observer} from "mobx-react"
 
-export const StatusAvatar = ({username, isMobile, isConnected, deviceModel}) => {
+const StatusAvatar = ({name, isMobile, isConnected, deviceModel}) => {
     const style = useMemo(() => ({
         position: "absolute",
-        bottom: -4,
-        right: 10,
-        color: isConnected ? "secondary.dark" : 'gray.100',
+        bottom: -4.444,
+        right: .4444,
+        color: isConnected ? "secondary.dark" : '#ff6c6c',
     }), [isConnected])
-    return <Box sx={{display: "flex", position: 'relative'}}>
+    return <Box sx={{
+        display: "flex",
+        position: 'relative',
+        width: 58
+    }}>
         <Avatar>
-            {username[0]}
+            {!!name && name[0]}
         </Avatar>
-        {isMobile ?
-            deviceModel == 'iPhone' ? <PhoneIphone fontSize={'small'} sx={style}/> : <PhoneAndroid fontSize={'small'} sx={style}/> :
+        {typeof isMobile !== "undefined" && deviceModel ?
+            deviceModel === 'iPhone' ? <PhoneIphone fontSize={'small'} sx={style}/> : <PhoneAndroid fontSize={'small'} sx={style}/> :
             <Computer fontSize={'small'} sx={style}/>
         }
     </Box>
 }
+export default observer(StatusAvatar)
