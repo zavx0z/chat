@@ -8,7 +8,7 @@ const Message = ({author, content, isSentByMe, sentTime, status}) => {
     const avatarLetter = author.charAt(0).toUpperCase()
     const colorAvatar = (isSentByMe) => isSentByMe ? 'grey.600' : 'grey.400'
     const colorMessage = (isSentByMe) => isSentByMe ? 'grey.300' : 'grey.100'
-    const position = (isSentByMe) => isMobile && isSentByMe && {flexDirection: 'row-reverse', textAlign: 'right',}
+    const position = (isSentByMe) => isMobile && isSentByMe && {flexDirection: 'row-reverse', textAlign: 'right'}
     return <Box sx={{
         width: "100%",
         display: 'flex',

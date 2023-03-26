@@ -60,7 +60,6 @@ const receive = (store) => sioAfterCreate(store, (sio, store) => {
     sio.on(channel.CHAT, payload => {  // STATIC
         switch (payload.action) {
             case 'init':
-                console.log(payload)
                 sio.emit(channel.USERS, {
                     action: action.GET,
                     data: payload.data.map(({id}) => id)

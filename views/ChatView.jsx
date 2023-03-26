@@ -3,7 +3,7 @@ import Box from "@mui/material/Box"
 import {Route, Routes} from "react-router-dom"
 import {inject, observer} from "mobx-react"
 import DialogView from "./DialogView"
-import DialogsPanel from "../components/DialogsPanel"
+import DialogsPanel from "./DialogsView"
 import {isBrowser} from "react-device-detect"
 
 const main = {

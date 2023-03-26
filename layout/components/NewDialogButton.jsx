@@ -1,7 +1,7 @@
 import {TextField} from "@mui/material"
 import React from "react"
 
-export const NewDialog = () => {
+export const NewDialogButton = () => {
     return <TextField
         fullWidth
         size={'small'}
