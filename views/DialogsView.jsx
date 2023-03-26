@@ -9,14 +9,13 @@ import {timezone} from "../utils/date"
 import Box from "@mui/material/Box"
 import {isMobile} from "react-device-detect"
 import {getRoot} from "mobx-state-tree"
-import Button from "@mui/material/Button"
 import Divider from "@mui/material/Divider"
 import Avatar from "@mui/material/Avatar"
 import {DoneAll} from "@mui/icons-material"
 import Typography from "@mui/material/Typography"
 import StatusIcon from "../components/StatusIcon"
 
-const DialogsView = ({dialogs}) => {
+const DialogsView = ({dialogs, children}) => {
     const navigate = useNavigate()
     const {dialogId} = useParams()
     const statusConnected = (isConnected, lastVisit) => {
@@ -30,7 +29,6 @@ const DialogsView = ({dialogs}) => {
         borderRight: `${isMobile ? 0 : 1}px solid grey`,
         overflow: 'auto'
     }}>
-        {/*<NewDialog/>*/}
         <List
             sx={{pt: 1, pb: 0}}
         >
@@ -112,17 +110,7 @@ const DialogsView = ({dialogs}) => {
                     </ListItemSecondaryAction>
                 </ListItemButton>)}
         </List>
-        <Box sx={{p: 1}}>
-            <Button
-                fullWidth
-                onClick={() => navigate(routes.projects)}
-                color={"inherit"}
-                variant={'contained'}
-                size={'small'}
-            >
-                Создать проект
-            </Button>
-        </Box>
+        {children}
         <Divider/>
     </Box>
 }
