@@ -7,13 +7,17 @@ const send = (store) => sioMiddleware(store, [
     {
         model: 'user',
         action: 'dialogJoin',
-        after: ({sio, args}) => sio.emit(
-            channel.DIALOG, {
-                action: action.JOIN,
-                data: {
-                    dialogId: args.id
-                }
-            })
+        after: ({sio, args}) => {
+            // console.log('i', args)
+            if (typeof args !== 'undefined')
+                sio.emit(
+                    channel.DIALOG, {
+                        action: action.JOIN,
+                        data: {
+                            dialogId: args.id
+                        }
+                    })
+        }
     },
     {
         model: 'user',
