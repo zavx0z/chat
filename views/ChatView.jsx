@@ -4,7 +4,7 @@ import {Route, Routes} from "react-router-dom"
 import {inject, observer} from "mobx-react"
 import DialogView from "./DialogView"
 import DialogsPanel from "./DialogsView"
-import {NewDialogButton} from "../layout/components/NewDialogButton"
+import {isBrowser} from "react-device-detect"
 
 const main = {
     height: '100vh',
@@ -15,15 +15,10 @@ const main = {
 const ChatView = ({user: {id, joinedDialog, dialogs}}) => {
     return <Box sx={main}>
         <Routes>
-            <Route path={'/'} element={
-                <DialogsPanel dialogs={dialogs}>
-                    <NewDialogButton/>
-                </DialogsPanel>}/>
-            <Route path={':dialogId'} element={
-                <DialogsPanel dialogs={dialogs}>
-                    <NewDialogButton/>
-                </DialogsPanel>
-            }/>
+            <Route path={'/'} element={<>
+                <DialogsPanel dialogs={dialogs}/>
+            </>}/>
+            <Route path={':dialogId'} element={isBrowser && <DialogsPanel dialogs={dialogs}/>}/>
         </Routes>
         <Routes>
             <Route path={":dialogId"} element={<DialogView userId={id} dialog={joinedDialog}/>}/>

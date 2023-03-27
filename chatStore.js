@@ -70,8 +70,17 @@ const receive = (store) => sioAfterCreate(store, (sio, store) => {
                 break
         }
     })
-    sio.on(channel.USERS, data => { // STATIC
-        applyPatch(store, {op: 'replace', path: '/users', value: data})
+    sio.on(channel.USERS, payload => { // STATIC
+        switch (payload.action) {
+            case action.UPDATE:
+                console.log(payload.data)
+                break
+            case action.GET:
+                applyPatch(store, {op: 'replace', path: '/users', value: payload.data})
+                break
+            default:
+                break
+        }
     })
     sio.on(channel.DIALOG, payload => {
         const dialog = store.getDialog(payload.data.dialogId)
