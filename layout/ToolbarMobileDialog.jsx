@@ -19,7 +19,7 @@ const ToolbarMobileDialog = ({user: {joinedDialog, dialogLeave, dialogJoin}}) =>
         dialogId && dialogJoin(dialogId)
         return () => dialogLeave(dialogId)
     }, [dialogId, dialogLeave, dialogJoin])
-    return <Fade timeout={444} in={typeof joinedDialog !== 'undefined'}>
+    return <Fade in={typeof joinedDialog !== 'undefined'}>
         <MuiToolbar sx={{
             display: 'flex',
             pl: 0,
@@ -38,7 +38,7 @@ const ToolbarMobileDialog = ({user: {joinedDialog, dialogLeave, dialogJoin}}) =>
             </IconButton>
             <Box sx={{position: 'relative', display: 'flex'}}>
                 <Avatar>
-                    {joinedDialog?.name[0].toUpperCase()}
+                    {joinedDialog?.sender.name[0].toUpperCase()}
                 </Avatar>
                 {!!joinedDialog?.unreadMessages ?
                     <Chip
@@ -78,7 +78,7 @@ const ToolbarMobileDialog = ({user: {joinedDialog, dialogLeave, dialogJoin}}) =>
                         alignItems: 'center',
                         justifyContent: 'center',
                     }}>
-                    {joinedDialog?.name && joinedDialog.name === 'support' && "Чат поддержки"}
+                    {joinedDialog?.sender.name}
                 </Typography>
                 {!joinedDialog?.sender.isConnected &&
                     <Typography

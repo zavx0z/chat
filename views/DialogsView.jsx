@@ -15,6 +15,29 @@ import {DoneAll} from "@mui/icons-material"
 import Typography from "@mui/material/Typography"
 import StatusIcon from "../components/StatusIcon"
 
+const Status = ({countUnreadMessages}) => {
+    return !!countUnreadMessages ? <Chip
+            sx={{
+                position: "absolute",
+                bottom: -5,
+                right: 4
+            }}
+            size={'small'}
+            color={'info'}
+            label={countUnreadMessages}
+        />
+        :
+        <DoneAll
+            sx={{
+                color: "secondary.dark",
+                position: "absolute",
+                bottom: -5,
+                right: 10
+            }}
+            fontSize={'small'}
+        />
+}
+
 const DialogsView = ({dialogs, children}) => {
     const navigate = useNavigate()
     const {dialogId} = useParams()
@@ -24,14 +47,11 @@ const DialogsView = ({dialogs, children}) => {
     return <Box sx={{
         height: '100%',
         position: 'relative',
-        width: isMobile ? '100%' : 400,
         backgroundColor: '#fff',
-        borderRight: `${isMobile ? 0 : 1}px solid grey`,
-        overflow: 'auto'
+        overflow: 'auto',
+        ...isMobile ? {width: '100%'} : {minWidth: 300, maxWidth: 400, borderRight: "1px solid #D5D5D5FF",}
     }}>
-        <List
-            sx={{pt: 1, pb: 0}}
-        >
+        <List sx={{pt: 1, pb: 0}}>
             {dialogs.map((dialog) =>
                 <ListItemButton
                     key={dialog.id}
@@ -44,30 +64,10 @@ const DialogsView = ({dialogs, children}) => {
                         <Avatar>
                             {dialog.name[0].toUpperCase()}
                         </Avatar>
-                        {!!dialog.unreadMessages ?
-                            <Chip
-                                sx={{
-                                    position: "absolute",
-                                    bottom: -5,
-                                    right: 4
-                                }}
-                                size={'small'}
-                                color={'info'}
-                                label={dialog.unreadMessages}
-                            /> :
-                            <DoneAll
-                                sx={{
-                                    color: "secondary.dark",
-                                    position: "absolute",
-                                    bottom: -5,
-                                    right: 10
-                                }}
-                                fontSize={'small'}
-                            />
-                        }
+                        <Status countUnreadMessages={dialog.unreadMessages}/>
                     </ListItemAvatar>
                     <ListItemText
-                        primary={dialog.name === 'support' ? "Чат поддержки" : dialog.name}
+                        primary={dialog.sender.name}
                         primaryTypographyProps={{
                             fontWeight: 'bold',
                             align: 'left',
