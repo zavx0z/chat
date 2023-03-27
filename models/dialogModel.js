@@ -73,8 +73,11 @@ export const Dialog = types
             const {users, id} = getRoot(self)
             if (!self.ownerId || !users.length) return ''
             const sender = self.participants.find(item => item !== id)
-            const user = users.find(user => user.id === sender)
-            return user
+            console.log(sender, users)
+            users.map(user => console.log(user.id === sender))
+            const us = getRoot(self).users.find(user => user.id === sender)
+            console.log(us, id)
+            return us
         },
         get lastMessage() {
             const senderName = self['lastMessageSenderId'] === self['id'] ? "Вы:" : ""

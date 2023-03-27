@@ -56,22 +56,43 @@ const send = (store) => sioMiddleware(store, [
             })
     },
 ])
-const receive = (store) => sioAfterCreate(store, (sio, store) => {
+const receive = (st) => sioAfterCreate(st, (sio, store) => {
     sio.on(channel.CHAT, payload => {  // STATIC
         switch (payload.action) {
             case 'init':
-                sio.emit(channel.USERS, {
-                    action: action.GET,
-                    data: payload.data.map(({id}) => id)
-                })
                 applyPatch(store, {op: 'replace', path: '/dialogs', value: payload.data})
                 break
             default:
                 break
         }
     })
-    sio.on(channel.USERS, data => { // STATIC
-        applyPatch(store, {op: 'replace', path: '/users', value: data})
+    sio.on(channel.USERS, payload => { // STATIC
+        switch (payload.action) {
+            case action.UPDATE:
+                console.log(payload.data)
+                if (store.id !== payload.data.id) {
+                    store.users.forEach(user => {
+                        if (user.id === payload.data.id) {
+                            applyPatch(user, {
+                                op: "replace",
+                                path: "",
+                                value: payload.data
+                            })
+                        }
+                    })
+                }
+                break
+            case action.GET:
+                console.log(payload.data)
+                applyPatch(store, {
+                    op: 'replace',
+                    path: '/users',
+                    value: payload.data
+                })
+                break
+            default:
+                break
+        }
     })
     sio.on(channel.DIALOG, payload => {
         const dialog = store.getDialog(payload.data.dialogId)

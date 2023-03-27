@@ -102,7 +102,7 @@ const DialogsView = ({dialogs, children}) => {
                                 </Typography>
                                 <StatusIcon
                                     isConnected={dialog.sender.isConnected}
-                                    isMobile={dialog.sender.isConnected}
+                                    isMobile={dialog.sender.isMobile}
                                     deviceModel={dialog.sender.deviceModel}
                                 />
                             </Box>
