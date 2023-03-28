@@ -4,12 +4,46 @@ import routes from "../../../routes/routes"
 import {ArrowBackIosNew, DoneAll} from "@mui/icons-material"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
-import {useEffect} from "react"
-import {inject, observer} from "mobx-react"
+import {useEffect, useMemo, useState} from "react"
 import {useNavigate, useParams} from "react-router-dom"
 import Avatar from "@mui/material/Avatar"
 import Box from "@mui/material/Box"
 import StatusIcon from "../components/StatusIcon"
+import {inject, observer} from "mobx-react"
+
+const StatusText = ({isConnected}) => {
+    const [online, setOnline] = useState(navigator.onLine)
+
+    useEffect(() => {
+        const setOnLine = () => setOnline(true)
+        const setOffline = () => setOnline(false)
+        window.addEventListener('offline', setOffline)
+        window.addEventListener('online', setOnLine)
+        return () => {
+            window.removeEventListener('online', setOnLine)
+            window.removeEventListener('offline', setOffline)
+        }
+    }, [setOnline])
+    const text = useMemo(() => {
+        if (!online)
+            return 'нет сети'
+        else if (isConnected)
+            return 'Online'
+        else return 'Offline'
+    }, [online, isConnected])
+
+    const color = useMemo(() => {
+        if (!online)
+            return 'grey.300'
+        else if (isConnected)
+            return "info.main"
+        else if (online && !isConnected)
+            return "grey.600"
+    }, [online, isConnected])
+    return <Typography color={color} variant={"subtitle2"} pr={.44}>
+        {text}
+    </Typography>
+}
 
 const ToolbarMobileDialog = ({user: {joinedDialog, dialogLeave, dialogJoin}}) => {
     const navigate = useNavigate()
@@ -102,13 +136,7 @@ const ToolbarMobileDialog = ({user: {joinedDialog, dialogLeave, dialogJoin}}) =>
                 flexWrap: 'wrap',
             }}>
                 <Box sx={{display: 'flex', justifyContent: "flex-end"}}>
-                    <Typography
-                        color={joinedDialog?.sender.isConnected ? "info.main" : 'error'}
-                        variant={"subtitle2"}
-                        pr={.44}
-                    >
-                        {joinedDialog?.sender.isConnected ? "Online" : "Offline"}
-                    </Typography>
+                    <StatusText isConnected={joinedDialog?.sender.isConnected}/>
                     <StatusIcon
                         isConnected={joinedDialog?.sender.isConnected}
                         isMobile={joinedDialog?.sender.isConnected}

@@ -57,6 +57,10 @@ const send = (store) => sioMiddleware(store, [
     },
 ])
 const receive = (st) => sioAfterCreate(st, (sio, store) => {
+    sio.on(channel.LOG, payload => {  // STATIC
+        console.log(payload)
+        applyPatch(store, {op: 'add', path: '/logs/-', value: payload})
+    })
     sio.on(channel.CHAT, payload => {  // STATIC
         switch (payload.action) {
             case 'init':
@@ -69,7 +73,7 @@ const receive = (st) => sioAfterCreate(st, (sio, store) => {
     sio.on(channel.USERS, payload => { // STATIC
         switch (payload.action) {
             case action.UPDATE:
-                console.log(payload.data)
+                // console.log(payload.data)
                 if (store.id !== payload.data.id) {
                     store.users.forEach(user => {
                         if (user.id === payload.data.id) {
@@ -83,7 +87,7 @@ const receive = (st) => sioAfterCreate(st, (sio, store) => {
                 }
                 break
             case action.GET:
-                console.log(payload.data)
+                // console.log(payload.data)
                 applyPatch(store, {
                     op: 'replace',
                     path: '/users',

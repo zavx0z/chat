@@ -7,7 +7,8 @@ const chatModel = types
     .model({
         dialogs: types.array(Dialog),
         users: types.array(UsersModel),
-        joinedDialog: types.safeReference(Dialog)
+        joinedDialog: types.safeReference(Dialog),
+        logs: types.array(types.string)
     })
     .volatile(self => ({
         sio: undefined,
