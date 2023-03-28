@@ -58,7 +58,6 @@ const send = (store) => sioMiddleware(store, [
 ])
 const receive = (st) => sioAfterCreate(st, (sio, store) => {
     sio.on(channel.LOG, payload => {  // STATIC
-        console.log(payload)
         applyPatch(store, {op: 'add', path: '/logs/-', value: payload})
     })
     sio.on(channel.CHAT, payload => {  // STATIC
