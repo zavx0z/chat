@@ -94,7 +94,7 @@ const receive = (store) => sioAfterCreate(store, (sio, store) => {
                 dialog.setLastMessageTime(payload.data.message.lastMessageTime)
                 break
             case action.JOIN: // DYNAMIC
-                // TODO: добавлять applyPatch(dialog, {op: 'add', path: '/messages/-', value: payload.data.messages})
+                // TODO: lazy load message applyPatch(dialog, {op: 'add', path: '/messages/-', value: payload.data.messages})
                 applyPatch(dialog, {op: 'replace', path: '/messages', value: payload.data.messages})
                 applyPatch(store, {op: 'replace', path: '/joinedDialog', value: dialog})
                 break

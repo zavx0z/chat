@@ -1,5 +1,5 @@
 import React from "react"
-import {Chip, List, ListItemAvatar, ListItemSecondaryAction, ListItemText} from "@mui/material"
+import {List, ListItemSecondaryAction, ListItemText} from "@mui/material"
 import ListItemButton from "@mui/material/ListItemButton"
 import {useNavigate, useParams} from "react-router-dom"
 import routes from "../../../routes/routes"
@@ -10,10 +10,10 @@ import Box from "@mui/material/Box"
 import {isMobile} from "react-device-detect"
 import {getRoot} from "mobx-state-tree"
 import Divider from "@mui/material/Divider"
-import Avatar from "@mui/material/Avatar"
-import {DoneAll} from "@mui/icons-material"
 import Typography from "@mui/material/Typography"
 import StatusIcon from "../components/StatusIcon"
+import StatusListItemAvatar from "../components/StatusListItemAvatar"
+import Robot from "../../../images/bot.jpg"
 
 const DialogsView = ({dialogs, children}) => {
     const navigate = useNavigate()
@@ -40,32 +40,11 @@ const DialogsView = ({dialogs, children}) => {
                     selected={parseInt(dialogId) === dialog.id}
                     onClick={() => navigate(routes.chat + '/' + dialog.id)}
                 >
-                    <ListItemAvatar sx={{position: 'relative'}}>
-                        <Avatar>
-                            {dialog.name[0].toUpperCase()}
-                        </Avatar>
-                        {!!dialog.unreadMessages ?
-                            <Chip
-                                sx={{
-                                    position: "absolute",
-                                    bottom: -5,
-                                    right: 4
-                                }}
-                                size={'small'}
-                                color={'info'}
-                                label={dialog.unreadMessages}
-                            /> :
-                            <DoneAll
-                                sx={{
-                                    color: "secondary.dark",
-                                    position: "absolute",
-                                    bottom: -5,
-                                    right: 10
-                                }}
-                                fontSize={'small'}
-                            />
-                        }
-                    </ListItemAvatar>
+                    <StatusListItemAvatar
+                        title={dialog.name[0].toUpperCase()}
+                        unreadMessages={dialog.unreadMessages}
+                        image={Robot}
+                    />
                     <ListItemText
                         primary={dialog.name === 'support' ? "Чат поддержки" : dialog.name}
                         primaryTypographyProps={{
