@@ -13,7 +13,6 @@ import Divider from "@mui/material/Divider"
 import Typography from "@mui/material/Typography"
 import StatusIcon from "../components/StatusIcon"
 import StatusListItemAvatar from "../components/StatusListItemAvatar"
-import Robot from "../../../images/bot.jpg"
 
 const DialogsView = ({dialogs, children}) => {
     const navigate = useNavigate()
@@ -43,7 +42,7 @@ const DialogsView = ({dialogs, children}) => {
                     <StatusListItemAvatar
                         title={dialog.name[0].toUpperCase()}
                         unreadMessages={dialog.unreadMessages}
-                        image={Robot}
+                        // image={Robot}
                     />
                     <ListItemText
                         primary={dialog.name === 'support' ? "Чат поддержки" : dialog.name}
