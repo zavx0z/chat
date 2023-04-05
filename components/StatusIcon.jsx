@@ -1,24 +1,11 @@
 import {Computer, NetworkLocked, PhoneAndroid, PhoneIphone} from "@mui/icons-material"
-import {useEffect, useMemo, useState} from "react"
+import {useMemo} from "react"
 import {observer} from "mobx-react"
+import IsOnline from "../hooks/IsOnline"
 
 const StatusIcon = ({isConnected, isMobile, deviceModel}) => {
-    const [online, setOnline] = useState(navigator.onLine)
-    useEffect(() => {
-        const setOnLine = () => setOnline(true)
-        const setOffline = () => setOnline(false)
-        window.addEventListener('offline', setOffline)
-        window.addEventListener('online', setOnLine)
-        return () => {
-            window.removeEventListener('online', setOnLine)
-            window.removeEventListener('offline', setOffline)
-        }
-    }, [setOnline])
-
+    const online = IsOnline()
     const color = useMemo(() => isConnected ? "info" : 'error', [isConnected])
-    useEffect(() => {
-        console.log(navigator.onLine)
-    }, [navigator.onLine])
     const status = () => {
         if (!online)
             return <NetworkLocked color={'warning'} fontSize={'small'}/>

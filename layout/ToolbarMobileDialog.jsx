@@ -4,26 +4,16 @@ import routes from "../../../routes/routes"
 import {ArrowBackIosNew, DoneAll} from "@mui/icons-material"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
-import {useEffect, useMemo, useState} from "react"
+import {useEffect, useMemo} from "react"
 import {useNavigate, useParams} from "react-router-dom"
 import Avatar from "@mui/material/Avatar"
 import Box from "@mui/material/Box"
 import StatusIcon from "../components/StatusIcon"
 import {inject, observer} from "mobx-react"
+import isOnline from "../hooks/IsOnline"
 
 const StatusText = ({isConnected}) => {
-    const [online, setOnline] = useState(navigator.onLine)
-
-    useEffect(() => {
-        const setOnLine = () => setOnline(true)
-        const setOffline = () => setOnline(false)
-        window.addEventListener('offline', setOffline)
-        window.addEventListener('online', setOnLine)
-        return () => {
-            window.removeEventListener('online', setOnLine)
-            window.removeEventListener('offline', setOffline)
-        }
-    }, [setOnline])
+    const online = isOnline()
     const text = useMemo(() => {
         if (!online)
             return 'нет сети'
