@@ -59,7 +59,7 @@ const send = (store) => sioMiddleware(store, [
 const receive = (store) => sioAfterCreate(store, (sio, store) => {
     sio.on(channel.CHAT, payload => {  // STATIC
         switch (payload.action) {
-            case 'init':
+            case action.GET:
                 sio.emit(channel.USERS, {
                     action: action.GET,
                     data: payload.data.map(({id}) => id)
@@ -114,7 +114,7 @@ const receive = (store) => sioAfterCreate(store, (sio, store) => {
                 break
         }
     })
-    sio.emit(channel.CHAT, {action: 'init'})  // static
+    sio.emit(channel.CHAT, {action: action.GET})  // static
 })
 const chatStore = (store) => {
     receive(store)
