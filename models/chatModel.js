@@ -2,6 +2,7 @@ import {types} from 'mobx-state-tree'
 import {Dialog} from "./dialogModel"
 import {UsersModel} from "./usersModel"
 
+const LOGS_LENGTH = 100
 
 const chatModel = types
     .model({
@@ -14,6 +15,12 @@ const chatModel = types
         sio: undefined,
     }))
     .actions(self => ({
+        addLog(payload) {
+            const {logs} = self
+            logs.unshift(payload)
+            if (logs.length > LOGS_LENGTH)
+                logs.splice(LOGS_LENGTH, logs.length - LOGS_LENGTH)
+        },
         getDialog(dialog) {
             const {dialogs} = self
             if (parseInt(dialog))
@@ -35,6 +42,9 @@ const chatModel = types
                 self.dialogs.forEach(dialog => count += dialog.unreadMessages)
                 return count
             } else return 0
+        },
+        get logString() {
+            return self.logs.length ? self.logs.join('\n') : '>>>'
         }
     }))
 
