@@ -1,5 +1,5 @@
 import React from "react"
-import {Chip, List, ListItemAvatar, ListItemSecondaryAction, ListItemText} from "@mui/material"
+import {List, ListItemSecondaryAction, ListItemText} from "@mui/material"
 import ListItemButton from "@mui/material/ListItemButton"
 import {useNavigate, useParams} from "react-router-dom"
 import routes from "../../../routes/routes"
@@ -10,33 +10,10 @@ import Box from "@mui/material/Box"
 import {isMobile} from "react-device-detect"
 import {getRoot} from "mobx-state-tree"
 import Divider from "@mui/material/Divider"
-import Avatar from "@mui/material/Avatar"
-import {DoneAll} from "@mui/icons-material"
 import Typography from "@mui/material/Typography"
 import StatusIcon from "../components/StatusIcon"
-
-const Status = ({countUnreadMessages}) => {
-    return !!countUnreadMessages ? <Chip
-            sx={{
-                position: "absolute",
-                bottom: -5,
-                right: 4
-            }}
-            size={'small'}
-            color={'info'}
-            label={countUnreadMessages}
-        />
-        :
-        <DoneAll
-            sx={{
-                color: "secondary.dark",
-                position: "absolute",
-                bottom: -5,
-                right: 10
-            }}
-            fontSize={'small'}
-        />
-}
+import StatusListItemAvatar from "../components/StatusListItemAvatar"
+import Robot from "../../../images/bot.jpg"
 
 const DialogsView = ({dialogs, children}) => {
     const navigate = useNavigate()
@@ -47,11 +24,14 @@ const DialogsView = ({dialogs, children}) => {
     return <Box sx={{
         height: '100%',
         position: 'relative',
+        width: isMobile ? '100%' : 400,
         backgroundColor: '#fff',
-        overflow: 'auto',
-        ...isMobile ? {width: '100%'} : {minWidth: 300, maxWidth: 400, borderRight: "1px solid #D5D5D5FF",}
+        borderRight: `${isMobile ? 0 : 1}px solid grey`,
+        overflow: 'auto'
     }}>
-        <List sx={{pt: 1, pb: 0}}>
+        <List
+            sx={{pt: 1, pb: 0}}
+        >
             {dialogs.map((dialog) =>
                 <ListItemButton
                     key={dialog.id}
@@ -60,14 +40,13 @@ const DialogsView = ({dialogs, children}) => {
                     selected={parseInt(dialogId) === dialog.id}
                     onClick={() => navigate(routes.chat + '/' + dialog.id)}
                 >
-                    <ListItemAvatar sx={{position: 'relative'}}>
-                        <Avatar>
-                            {dialog.name[0].toUpperCase()}
-                        </Avatar>
-                        <Status countUnreadMessages={dialog.unreadMessages}/>
-                    </ListItemAvatar>
+                    <StatusListItemAvatar
+                        title={dialog.name[0].toUpperCase()}
+                        unreadMessages={dialog.unreadMessages}
+                        image={Robot}
+                    />
                     <ListItemText
-                        primary={dialog.sender.name}
+                        primary={dialog.name === 'support' ? "Чат поддержки" : dialog.name}
                         primaryTypographyProps={{
                             fontWeight: 'bold',
                             align: 'left',
@@ -98,11 +77,11 @@ const DialogsView = ({dialogs, children}) => {
                                     color={dialog.sender.isConnected ? "secondary.dark" : 'error'}
                                     variant={"subtitle2"}
                                 >
-                                    {dialog.sender.isConnected ? "Online" : statusConnected(dialog.sender.isConnected, dialog.sender.lastVisit)}
+                                    {dialog?.sender.isConnected ? "Online" : statusConnected(dialog.sender.isConnected, dialog.sender.lastVisit)}
                                 </Typography>
                                 <StatusIcon
                                     isConnected={dialog.sender.isConnected}
-                                    isMobile={dialog.sender.isMobile}
+                                    isMobile={dialog.sender.isConnected}
                                     deviceModel={dialog.sender.deviceModel}
                                 />
                             </Box>

@@ -29,7 +29,9 @@ const chatModel = types
                 return dialogs.find(item => item.name === dialog)
         },
         dialogJoin(dialog) {
-            return this.getDialog(dialog)
+            const d = this.getDialog(dialog)
+            console.log(self.dialogs.length, d)
+            return d
         },
         dialogLeave(dialog) {
             return this.getDialog(dialog)

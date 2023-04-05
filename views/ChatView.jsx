@@ -15,7 +15,9 @@ const main = {
 const ChatView = ({user: {id, joinedDialog, dialogs}}) => {
     return <Box sx={main}>
         <Routes>
-            <Route path={'/'} element={<DialogsView dialogs={dialogs}/>}/>
+            <Route path={'/'} element={<>
+                <DialogsView dialogs={dialogs}/>
+            </>}/>
             <Route path={':dialogId'} element={isBrowser && <DialogsView dialogs={dialogs}/>}/>
         </Routes>
         <Routes>

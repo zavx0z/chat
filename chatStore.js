@@ -56,13 +56,10 @@ const send = (store) => sioMiddleware(store, [
             })
     },
 ])
-const receive = (st) => sioAfterCreate(st, (sio, store) => {
-    sio.on(channel.LOG, payload => {  // STATIC
-        store.addLog(payload)
-    })
+const receive = (store) => sioAfterCreate(store, (sio, store) => {
     sio.on(channel.CHAT, payload => {  // STATIC
         switch (payload.action) {
-            case 'init':
+            case action.GET:
                 applyPatch(store, {op: 'replace', path: '/dialogs', value: payload.data})
                 break
             default:
@@ -86,12 +83,7 @@ const receive = (st) => sioAfterCreate(st, (sio, store) => {
                 }
                 break
             case action.GET:
-                // console.log(payload.data)
-                applyPatch(store, {
-                    op: 'replace',
-                    path: '/users',
-                    value: payload.data
-                })
+                applyPatch(store, {op: 'replace', path: '/users', value: payload.data})
                 break
             default:
                 break
@@ -109,7 +101,7 @@ const receive = (st) => sioAfterCreate(st, (sio, store) => {
                 dialog.setLastMessageTime(payload.data.message.lastMessageTime)
                 break
             case action.JOIN: // DYNAMIC
-                // TODO: добавлять applyPatch(dialog, {op: 'add', path: '/messages/-', value: payload.data.messages})
+                // TODO: lazy load message applyPatch(dialog, {op: 'add', path: '/messages/-', value: payload.data.messages})
                 applyPatch(dialog, {op: 'replace', path: '/messages', value: payload.data.messages})
                 applyPatch(store, {op: 'replace', path: '/joinedDialog', value: dialog})
                 break
@@ -129,7 +121,7 @@ const receive = (st) => sioAfterCreate(st, (sio, store) => {
                 break
         }
     })
-    sio.emit(channel.CHAT, {action: 'init'})  // static
+    sio.emit(channel.CHAT, {action: action.GET})  // static
 })
 const chatStore = (store) => {
     receive(store)
