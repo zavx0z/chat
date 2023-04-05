@@ -60,10 +60,6 @@ const receive = (store) => sioAfterCreate(store, (sio, store) => {
     sio.on(channel.CHAT, payload => {  // STATIC
         switch (payload.action) {
             case action.GET:
-                sio.emit(channel.USERS, {
-                    action: action.GET,
-                    data: payload.data.map(({id}) => id)
-                })
                 applyPatch(store, {op: 'replace', path: '/dialogs', value: payload.data})
                 break
             default:

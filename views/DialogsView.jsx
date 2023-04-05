@@ -77,7 +77,7 @@ const DialogsView = ({dialogs, children}) => {
                                     color={dialog.sender.isConnected ? "secondary.dark" : 'error'}
                                     variant={"subtitle2"}
                                 >
-                                    {dialog.sender.isConnected ? "Online" : statusConnected(dialog.sender.isConnected, dialog.sender.lastVisit)}
+                                    {dialog?.sender.isConnected ? "Online" : statusConnected(dialog.sender.isConnected, dialog.sender.lastVisit)}
                                 </Typography>
                                 <StatusIcon
                                     isConnected={dialog.sender.isConnected}
