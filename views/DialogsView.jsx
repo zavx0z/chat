@@ -17,9 +17,7 @@ import StatusListItemAvatar from "../components/StatusListItemAvatar"
 const DialogsView = ({dialogs, children}) => {
     const navigate = useNavigate()
     const {dialogId} = useParams()
-    const statusConnected = (isConnected, lastVisit) => {
-        return isConnected ? 'Online' : `Был: ${moment.utc(lastVisit).tz(timezone).startOf("day").format('DD.MM.YYYY')}`
-    }
+    const statusConnected = (isConnected, lastVisit) => isConnected ? 'Online' : `Был: ${moment.utc(lastVisit).tz(timezone).startOf("day").format('DD.MM.YYYY')}`
     return <Box sx={{
         height: '100%',
         position: 'relative',
@@ -28,9 +26,7 @@ const DialogsView = ({dialogs, children}) => {
         borderRight: `${isMobile ? 0 : 1}px solid grey`,
         overflow: 'auto'
     }}>
-        <List
-            sx={{pt: 1, pb: 0}}
-        >
+        <List sx={{pt: 1, pb: 0}}>
             {dialogs.map((dialog) =>
                 <ListItemButton
                     key={dialog.id}

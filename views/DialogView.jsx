@@ -10,7 +10,7 @@ import userStore from "../../../stores/userStore"
 const DialogView = ({userId, dialog}) => {
     const {dialogId} = useParams()
     useEffect(() => {
-        dialogId && userStore.dialogJoin(dialogId)
+        userStore.dialogJoin(dialogId)
         return () => userStore.dialogLeave(dialogId)
     }, [dialogId])
     const [scrolling, setScrolling] = useState('auto')
@@ -25,21 +25,20 @@ const DialogView = ({userId, dialog}) => {
         flexDirection: 'column',
         overflow: 'hidden',
     }
-    return dialog && userId &&
-        <Box sx={chatBlock}>
-            <Chat
-                userId={userId}
-                scrolling={scrolling}
-                setScrolling={setScrolling}
-                messages={dialog.messagesByDay}
-                readMessage={dialog.readMessage}
-                unreadMessages={dialog.unreadMessages}
-            />
-            <InputMessage
-                sendMessage={dialog.sendMessage}
-                readMessage={dialog.readMessage}
-                setScrolling={setScrolling}
-            />
-        </Box>
+    return dialog && <Box sx={chatBlock}>
+        <Chat
+            userId={userId}
+            scrolling={scrolling}
+            setScrolling={setScrolling}
+            messages={dialog.messagesByDay}
+            readMessage={dialog.readMessage}
+            unreadMessages={dialog.unreadMessages}
+        />
+        <InputMessage
+            sendMessage={dialog.sendMessage}
+            readMessage={dialog.readMessage}
+            setScrolling={setScrolling}
+        />
+    </Box>
 }
 export default observer(DialogView)

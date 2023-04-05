@@ -7,17 +7,11 @@ const send = (store) => sioMiddleware(store, [
     {
         model: 'user',
         action: 'dialogJoin',
-        after: ({sio, args}) => {
-            // console.log('i', args)
-            if (typeof args !== 'undefined')
-                sio.emit(
-                    channel.DIALOG, {
-                        action: action.JOIN,
-                        data: {
-                            dialogId: args.id
-                        }
-                    })
-        }
+        after: ({sio, args}) => typeof args !== 'undefined' && sio.emit(
+            channel.DIALOG, {
+                action: action.JOIN,
+                data: {dialogId: args.id}
+            })
     },
     {
         model: 'user',
@@ -69,18 +63,10 @@ const receive = (store) => sioAfterCreate(store, (sio, store) => {
     sio.on(channel.USERS, payload => { // STATIC
         switch (payload.action) {
             case action.UPDATE:
-                // console.log(payload.data)
-                if (store.id !== payload.data.id) {
-                    store.users.forEach(user => {
-                        if (user.id === payload.data.id) {
-                            applyPatch(user, {
-                                op: "replace",
-                                path: "",
-                                value: payload.data
-                            })
-                        }
-                    })
-                }
+                store.users.forEach(user => {
+                    if (user.id === payload.data.id)
+                        applyPatch(user, {op: "replace", path: "", value: payload.data})
+                })
                 break
             case action.GET:
                 applyPatch(store, {op: 'replace', path: '/users', value: payload.data})
@@ -100,7 +86,7 @@ const receive = (store) => sioAfterCreate(store, (sio, store) => {
                 dialog.setLastMessageText(payload.data.message.lastMessageText)
                 dialog.setLastMessageTime(payload.data.message.lastMessageTime)
                 break
-            case action.JOIN: // DYNAMIC
+            case action.GET: // DYNAMIC
                 // TODO: lazy load message applyPatch(dialog, {op: 'add', path: '/messages/-', value: payload.data.messages})
                 applyPatch(dialog, {op: 'replace', path: '/messages', value: payload.data.messages})
                 applyPatch(store, {op: 'replace', path: '/joinedDialog', value: dialog})
@@ -113,8 +99,7 @@ const receive = (store) => sioAfterCreate(store, (sio, store) => {
                     dialog.addMessage(payload.data.message)
                 break
             case action.READ: // DYNAMIC
-                payload.data.messageIds.forEach(msgId => dialog.messages.find(msg => msg.id === msgId)
-                    .setRead())
+                payload.data.messageIds.forEach(msgId => dialog.messages.find(msg => msg.id === msgId).setRead())
                 dialog.resetUnreadMessages()
                 break
             default:

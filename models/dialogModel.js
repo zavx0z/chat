@@ -61,23 +61,22 @@ export const Dialog = types
     }))
     .views(self => ({
         get messagesByDay() {
-            return self['messages'].reduce((acc, message) => {
-                const date = moment.utc(message.created).tz(timezone).startOf("day").format('DD.MM.YYYY')
-                if (!acc[date])
-                    acc[date] = []
-                acc[date].push(message)
-                return acc
-            }, {})
+            return !!self['messages'].length ?
+                self['messages'].reduce((acc, message) => {
+                    const date = moment.utc(message.created).tz(timezone).startOf("day").format('DD.MM.YYYY')
+                    if (!acc[date])
+                        acc[date] = []
+                    acc[date].push(message)
+                    return acc
+                }, {})
+                : []
         },
         get sender() {
             const {users, id} = getRoot(self)
-            if (!self.ownerId || !users.length) return ''
+            if (!self['ownerId'] || !users.length) return ''
             const sender = self.participants.find(item => item !== id)
-            // console.log(sender, users)
-            users.map(user => console.log(user.id === sender))
-            const us = getRoot(self).users.find(user => user.id === sender)
-            // console.log(us, id)
-            return us
+            const sender_user = getRoot(self).users.find(user => user.id === sender)
+            return sender_user
         },
         get lastMessage() {
             const senderName = self['lastMessageSenderId'] === self['id'] ? "Вы:" : ""
