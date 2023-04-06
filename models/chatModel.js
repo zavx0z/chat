@@ -2,25 +2,16 @@ import {types} from 'mobx-state-tree'
 import {Dialog} from "./dialogModel"
 import {UsersModel} from "./usersModel"
 
-const LOGS_LENGTH = 100
-
 const chatModel = types
     .model({
         dialogs: types.array(Dialog),
         users: types.array(UsersModel),
         joinedDialog: types.safeReference(Dialog),
-        logs: types.array(types.string)
     })
     .volatile(self => ({
         sio: undefined,
     }))
     .actions(self => ({
-        addLog(payload) {
-            const {logs} = self
-            logs.unshift(payload)
-            if (logs.length > LOGS_LENGTH)
-                logs.splice(LOGS_LENGTH, logs.length - LOGS_LENGTH)
-        },
         getDialog(dialog) {
             const {dialogs} = self
             if (parseInt(dialog))
