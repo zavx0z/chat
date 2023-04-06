@@ -79,7 +79,7 @@ export const Dialog = types
             return sender_user
         },
         get lastMessage() {
-            const senderName = self['lastMessageSenderId'] === self['id'] ? "Вы:" : ""
+            const senderName = self['lastMessageSenderId'] === getRoot(self)['id'] ? "Вы:" : ""
             return `${senderName} ${self['lastMessageText']}`
         },
         get lastSentDate() {

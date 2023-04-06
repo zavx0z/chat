@@ -8,7 +8,6 @@ import moment from "moment-timezone"
 import {timezone} from "../utils/date"
 import Box from "@mui/material/Box"
 import {isMobile} from "react-device-detect"
-import {getRoot} from "mobx-state-tree"
 import Divider from "@mui/material/Divider"
 import Typography from "@mui/material/Typography"
 import StatusIcon from "../components/StatusIcon"
@@ -55,13 +54,8 @@ const DialogsView = ({dialogs, children}) => {
                             align: 'left',
                             noWrap: true,
                         }}
-                        secondary={dialog.lastMessageSenderId === getRoot(dialog).id ?
-                            "Вы: " + dialog.lastMessage :
-                            dialog.lastMessage
-                        }
-                        secondaryTypographyProps={{
-                            noWrap: true,
-                        }}
+                        secondary={dialog.lastMessage}
+                        secondaryTypographyProps={{noWrap: true}}
                     >
                     </ListItemText>
                     <ListItemSecondaryAction sx={{
