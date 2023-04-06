@@ -18,17 +18,25 @@ const DialogsView = ({dialogs, children}) => {
     const navigate = useNavigate()
     const {dialogId} = useParams()
     const statusConnected = (isConnected, lastVisit) => isConnected ? 'Online' : `Был: ${moment.utc(lastVisit).tz(timezone).startOf("day").format('DD.MM.YYYY')}`
-    return <Box sx={{
+    return <Box sx={theme => ({
         height: '100%',
         position: 'relative',
         width: isMobile ? '100%' : 400,
         backgroundColor: '#fff',
-        borderRight: `${isMobile ? 0 : 1}px solid grey`,
+        borderRight: `${isMobile ? 0 : 1}px solid ${theme.palette.grey[300]}`,
         overflow: 'auto'
-    }}>
-        <List sx={{pt: 1, pb: 0}}>
+    })}>
+        <List
+            sx={{
+                pt: 0,
+                pb: 0
+        }}
+        >
             {dialogs.map((dialog) =>
                 <ListItemButton
+                    sx={{
+                        maxHeight: 56
+                    }}
                     key={dialog.id}
                     divider
                     dense
@@ -45,6 +53,7 @@ const DialogsView = ({dialogs, children}) => {
                         primaryTypographyProps={{
                             fontWeight: 'bold',
                             align: 'left',
+                            noWrap: true,
                         }}
                         secondary={dialog.lastMessageSenderId === getRoot(dialog).id ?
                             "Вы: " + dialog.lastMessage :

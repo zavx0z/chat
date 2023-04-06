@@ -10,7 +10,9 @@ const send = (store) => sioMiddleware(store, [
         after: ({sio, args}) => typeof args !== 'undefined' && sio.emit(
             channel.DIALOG, {
                 action: action.JOIN,
-                data: {dialogId: args.id}
+                data: {
+                    dialogId: args.id,
+                }
             })
     },
     {
@@ -21,7 +23,7 @@ const send = (store) => sioMiddleware(store, [
             channel.DIALOG, {
                 action: action.LEAVE,
                 data: {
-                    dialogId: args.id
+                    dialogId: args.id,
                 }
             })
     },
