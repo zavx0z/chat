@@ -36,9 +36,6 @@ const chatModel = types
                 return count
             } else return 0
         },
-        get logString() {
-            return self.logs.length ? self.logs.join('\n') : '>>>'
-        }
     }))
 
 export default chatModel
