@@ -58,6 +58,15 @@ const receive = (store) => sioAfterCreate(store, (sio, store) => {
             case action.GET:
                 applyPatch(store, {op: 'replace', path: '/dialogs', value: payload.data})
                 break
+            case action.UPDATE:
+                sio.emit(channel.DIALOG, {action: action.JOIN_STATIC, data: {dialogId: payload.data.dialog.id}})
+                payload.data.users.forEach(item => {
+                    if (!store.users.find(user => user.id === item.id))
+                        applyPatch(store, {op: "add", path: "/users/-", value: payload.data.users})
+                })
+                if (!store.getDialog(payload.data.dialog.id))
+                    applyPatch(store, {op: "add", path: "/dialogs/-", value: payload.data.dialog})
+                break
             default:
                 break
         }

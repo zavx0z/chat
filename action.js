@@ -5,5 +5,8 @@ const action = {
     LEAVE: 'leave',
     READ: 'read',
     WRITE: 'write',
+    PUT: 'put',
+    JOIN_STATIC: 'joinStatic',
+
 }
 export default action
