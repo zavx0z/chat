@@ -9,7 +9,7 @@ import React from "react"
 import moment from "moment-timezone"
 import {timezone} from "../utils/date"
 
-const DialogListItem = ({selected, handleClick, dialogName, unreadMessages, lastMessage, isConnected, deviceModel, lastVisit}) => {
+const DialogListItem = ({selected, handleClick, dialogTitle, unreadMessages, lastMessage, isConnected, deviceModel, lastVisit}) => {
     const statusConnected = (isConnected, lastVisit) => isConnected ? 'Online' : `Был: ${moment.utc(lastVisit).tz(timezone).startOf("day").format('DD.MM.YYYY')}`
     return <ListItemButton
         sx={{
@@ -21,12 +21,12 @@ const DialogListItem = ({selected, handleClick, dialogName, unreadMessages, last
         onClick={handleClick}
     >
         <StatusListItemAvatar
-            title={dialogName[0].toUpperCase()}
+            title={dialogTitle[0].toUpperCase()}
             unreadMessages={unreadMessages}
             // image={Robot}
         />
         <ListItemText
-            primary={dialogName}
+            primary={dialogTitle}
             primaryTypographyProps={{
                 fontWeight: 'bold',
                 align: 'left',

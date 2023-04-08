@@ -28,7 +28,7 @@ const DialogList = ({dialogs, children}) => {
                     key={dialog.id}
                     selected={parseInt(dialogId) === dialog.id}
                     handleClick={() => navigate(routes.chat + '/' + dialog.id)}
-                    dialogName={dialog.name === 'support' ? "Чат поддержки" : dialog.name}
+                    dialogTitle={dialog.title}
                     unreadMessages={dialog.unreadMessages}
                     lastMessage={dialog.lastMessage}
                     isConnected={dialog.sender.isConnected}

@@ -57,6 +57,10 @@ export const Dialog = types
                 })
                 return unread
             }
+        },
+        getOwnerUser() {
+            const {users} = getRoot(self)
+            return users.find(user => user.id === self['ownerId'])
         }
     }))
     .views(self => ({
@@ -84,5 +88,15 @@ export const Dialog = types
         },
         get lastSentDate() {
             return moment.utc(self['lastMessageTime']).tz(timezone).format('DD.MM HH:mm')
+        },
+        get title() {
+            const {role} = getRoot(self)
+            const {name, getOwnerUser} = self
+            if (name === 'support' && (role === 'admin' || role === 'superuser'))
+                return getOwnerUser().name
+            else if (name === 'support')
+                return "Чат поддержки"
+            else
+                return name
         }
     }))
