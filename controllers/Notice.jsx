@@ -10,6 +10,8 @@ const Notice = ({user: {noticePlay, setNoticePlay}}) => {
 
     useEffect(() => {
         if (noticePlay) {
+            console.log('notice play')
+            audioRef.current.load()
             audioRef.current.volume = 1.0
             audioRef.current.play().then(() => setNoticePlay(false))
         }

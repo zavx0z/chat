@@ -1,4 +1,4 @@
-import {getRoot, types} from "mobx-state-tree"
+import {getParent, getRoot, types} from "mobx-state-tree"
 import {messageModel} from "./messageModel"
 import moment from "moment-timezone"
 import {timezone} from "../utils/date"
@@ -39,6 +39,8 @@ export const Dialog = types
             self['messages'].push(messageModel.create(data))
         },
         sendMessage(text) {
+            const {setNoticePlay} = getParent(self, 2)
+            setNoticePlay(true)
             self['messages'].push(messageModel.create({
                 id: -1,
                 text: text,
