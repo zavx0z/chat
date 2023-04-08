@@ -2,7 +2,13 @@ import {sioAfterCreate, sioMiddleware} from "../../middleware/sioMiddleware"
 import {applyPatch, getPath} from "mobx-state-tree"
 import channel from "./channels"
 import action from "./action"
+import notice from './notice.mp3'
 
+navigator.mediaDevices.getUserMedia({audio: true})
+// .then((stream) => console.log)
+// .catch((err) => console.log)
+
+const notice_audio = new Audio(notice)
 const send = (store) => sioMiddleware(store, [
     {
         model: 'user',
@@ -90,8 +96,10 @@ const receive = (store) => sioAfterCreate(store, (sio, store) => {
         const dialog = store.getDialog(payload.data.dialogId)
         switch (payload.action) {
             case action.UPDATE: // STATIC
-                if (payload.data.message.lastMessageSenderId !== store.id)  // отправленное собеседником
+                if (payload.data.message.lastMessageSenderId !== store.id) {  // отправленное собеседником
                     dialog.incUnreadMessages()
+                    notice_audio.play()
+                }
                 dialog.incTotalMessages()
                 dialog.setLastMessageSenderId(payload.data.message.lastMessageSenderId)
                 dialog.setLastMessageText(payload.data.message.lastMessageText)
@@ -106,8 +114,11 @@ const receive = (store) => sioAfterCreate(store, (sio, store) => {
                 if (payload.data.message.senderId === store.id) {  // отправленное собой
                     const selfMessage = dialog.messages.find(msg => msg.text === payload.data.message.text && msg.sent)
                     applyPatch(store, {op: 'replace', path: getPath(selfMessage), value: payload.data.message})
-                } else  // отправленное собеседником
+                } else {  // отправленное собеседником
                     dialog.addMessage(payload.data.message)
+                    console.log("notice_audio", notice_audio)
+                    notice_audio.play()
+                }
                 break
             case action.READ: // DYNAMIC
                 payload.data.messageIds.forEach(msgId => dialog.messages.find(msg => msg.id === msgId).setRead())

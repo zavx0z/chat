@@ -65,6 +65,7 @@ const Chat = ({userId, messages, readMessage, unreadMessages, scrolling, setScro
     }}>
         <List
             {...bind()}
+            onClick={readMessage}
             onTouchMove={e => e.stopPropagation()}
             sx={{
                 overflowY: "auto",
