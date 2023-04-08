@@ -4,7 +4,19 @@ import channel from "./channels"
 import action from "./action"
 import notice from './notice.mp3'
 
-navigator.mediaDevices.getUserMedia({audio: true})
+navigator.permissions.query({name: 'speaker'})
+    .then((result) => {
+        if (result.state === 'granted') {
+            console.log('Доступ к воспроизведению звука разрешен')
+        } else if (result.state === 'prompt') {
+            console.log('Пользователю нужно разрешить доступ к воспроизведению звука')
+        } else {
+            console.log('Доступ к воспроизведению звука запрещен')
+        }
+    })
+    .catch((error) => {
+        console.log(`Произошла ошибка: ${error}`)
+    })
 // .then((stream) => console.log)
 // .catch((err) => console.log)
 

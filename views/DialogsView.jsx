@@ -85,7 +85,8 @@ const DialogsView = ({dialogs, children}) => {
                             </Box>
                         </Box>
                     </ListItemSecondaryAction>
-                </ListItemButton>)}
+                </ListItemButton>
+            )}
         </List>
         {children}
         <Divider/>

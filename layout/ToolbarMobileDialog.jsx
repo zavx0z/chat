@@ -10,7 +10,7 @@ import Avatar from "@mui/material/Avatar"
 import Box from "@mui/material/Box"
 import NetworkStatusIcon from "../components/NetworkStatusIcon"
 import {inject, observer} from "mobx-react"
-import NetworkStatusText from "./NetworkStatusText"
+import NetworkStatusText from "../components/NetworkStatusText"
 
 const ToolbarMobileDialog = ({user: {joinedDialog, dialogLeave, dialogJoin}}) => {
     const navigate = useNavigate()
