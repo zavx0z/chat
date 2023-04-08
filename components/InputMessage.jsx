@@ -29,8 +29,7 @@ const InputMessage = ({sendMessage, readMessage, setScrolling}) => {
     }
     const isMultiline = message.search('\n') > 0
     return <Box sx={{
-        display: 'flex',
-        touchAction: 'none',
+        display: 'flex'
     }}>
         <FilledInput
             sx={isMultiline ? {alignItems: "end"} : {}}
