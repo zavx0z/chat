@@ -6,8 +6,10 @@ const Notice = ({user: {noticePlay, setNoticePlay}}) => {
     const audioRef = useRef(null)
 
     useEffect(() => {
-        if (noticePlay)
+        if (noticePlay) {
+            audioRef.current.volume = 1.0
             audioRef.current.play().then(() => setNoticePlay(false))
+        }
     }, [noticePlay, setNoticePlay])
 
     return <audio ref={audioRef}>
