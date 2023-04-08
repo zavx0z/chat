@@ -10,6 +10,7 @@ const chatModel = types
     })
     .volatile(self => ({
         sio: undefined,
+        noticePlay: false
     }))
     .actions(self => ({
         getDialog(dialog) {
@@ -20,12 +21,13 @@ const chatModel = types
                 return dialogs.find(item => item.name === dialog)
         },
         dialogJoin(dialog) {
-            const d = this.getDialog(dialog)
-            console.log(self.dialogs.length, d)
-            return d
+            return this.getDialog(dialog)
         },
         dialogLeave(dialog) {
             return this.getDialog(dialog)
+        },
+        setNoticePlay(bool) {
+            self.noticePlay = bool
         }
     }))
     .views(self => ({

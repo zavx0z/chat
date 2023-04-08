@@ -7,6 +7,7 @@ import MessageList from "../components/MessageList"
 import {useGesture} from "@use-gesture/react"
 import {ExpandMore} from "@mui/icons-material"
 import {scrollBottom} from "../utils/position"
+import Notice from "../controllers/Notice"
 
 let timeoutId
 
@@ -106,6 +107,7 @@ const Chat = ({userId, messages, readMessage, unreadMessages, scrolling, setScro
                     />}
             </Fab>
         </Slide>
+        <Notice/>
     </Box>
 }
 export default observer(Chat)
