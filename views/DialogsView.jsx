@@ -10,7 +10,7 @@ import Box from "@mui/material/Box"
 import {isMobile} from "react-device-detect"
 import Divider from "@mui/material/Divider"
 import Typography from "@mui/material/Typography"
-import StatusIcon from "../components/StatusIcon"
+import StatusIcon from "../components/NetworkStatusIcon"
 import StatusListItemAvatar from "../components/StatusListItemAvatar"
 
 const DialogsView = ({dialogs, children}) => {

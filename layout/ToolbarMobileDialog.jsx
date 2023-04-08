@@ -1,14 +1,14 @@
-import {Chip, Fade, IconButton} from "@mui/material"
+import {Fade, IconButton} from "@mui/material"
 import MuiToolbar from "@mui/material/Toolbar"
 import routes from "../../../routes/routes"
-import {ArrowBackIosNew, DoneAll} from "@mui/icons-material"
+import {ArrowBackIosNew} from "@mui/icons-material"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
 import {useEffect, useMemo} from "react"
 import {useNavigate, useParams} from "react-router-dom"
 import Avatar from "@mui/material/Avatar"
 import Box from "@mui/material/Box"
-import StatusIcon from "../components/StatusIcon"
+import StatusIcon from "../components/NetworkStatusIcon"
 import {inject, observer} from "mobx-react"
 import isOnline from "../hooks/IsOnline"
 
@@ -64,27 +64,6 @@ const ToolbarMobileDialog = ({user: {joinedDialog, dialogLeave, dialogJoin}}) =>
                 <Avatar>
                     {joinedDialog?.sender.name[0].toUpperCase()}
                 </Avatar>
-                {!!joinedDialog?.unreadMessages ?
-                    <Chip
-                        sx={{
-                            position: "absolute",
-                            bottom: -4,
-                            right: -7
-                        }}
-                        size={'small'}
-                        color={'info'}
-                        label={joinedDialog?.unreadMessages}
-                    /> :
-                    <DoneAll
-                        sx={{
-                            color: "secondary.dark",
-                            position: "absolute",
-                            bottom: -4,
-                            right: -7
-                        }}
-                        fontSize={'small'}
-                    />
-                }
             </Box>
             <Box sx={{
                 display: "flex",
