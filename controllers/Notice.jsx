@@ -1,5 +1,8 @@
 import {useEffect, useRef} from "react"
-import mp3 from "../notice.mp3"
+import mp3 from "../sound/notice.mp3"
+import wav from "../sound/notice.wav"
+import ogg from "../sound/notice.ogg"
+
 import {inject, observer} from "mobx-react"
 
 const Notice = ({user: {noticePlay, setNoticePlay}}) => {
@@ -13,6 +16,8 @@ const Notice = ({user: {noticePlay, setNoticePlay}}) => {
     }, [noticePlay, setNoticePlay])
 
     return <audio ref={audioRef}>
+        <source src={wav} type="audio/wav"/>
+        <source src={ogg} type="audio/ogg"/>
         <source src={mp3} type="audio/mp3"/>
     </audio>
 }
