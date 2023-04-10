@@ -17,7 +17,8 @@ const DialogList = ({dialogs, children}) => {
         minWidth: isMobile ? '100%' : 400,
         backgroundColor: '#fff',
         borderRight: `${isMobile ? 0 : 1}px solid ${theme.palette.grey[300]}`,
-        overflow: 'auto'
+        overflow: 'auto',
+        overscrollBehavior: 'auto'
     })}>
         <List sx={{
             pt: 0,
