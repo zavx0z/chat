@@ -6,7 +6,6 @@ const chatModel = types
     .model({
         dialogs: types.array(Dialog),
         users: types.array(UsersModel),
-        joinedDialog: types.safeReference(Dialog),
     })
     .volatile(self => ({
         sio: undefined,
@@ -26,8 +25,22 @@ const chatModel = types
         getUser(userId) {
             return self.users.find(user => user.id === userId)
         },
-        dialogJoin(dialog) {
-            return this.getDialog(dialog)
+        async waitDialog(dialogId) {
+            const {loadingDialogs} = self
+            if (loadingDialogs) {
+                await new Promise((resolve) => {
+                    const intervalId = setInterval(() => {
+                        if (!self.loadingDialogs) {
+                            clearInterval(intervalId)
+                            resolve()
+                        }
+                    }, 100)
+                })
+            }
+            return this.getDialog(dialogId)
+        },
+        async dialogJoin(dialogId) {
+            return this.waitDialog(dialogId)
         },
         dialogLeave(dialog) {
             return this.getDialog(dialog)

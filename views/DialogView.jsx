@@ -7,10 +7,11 @@ import Box from "@mui/material/Box"
 import {useParams} from "react-router-dom"
 import userStore from "../../../stores/userStore"
 
-const DialogView = ({userId, dialog}) => {
+const DialogView = ({userId}) => {
     const {dialogId} = useParams()
+    const [dialog, setDialog] = useState(null)
     useEffect(() => {
-        userStore.dialogJoin(dialogId)
+        userStore.dialogJoin(dialogId).then(setDialog)
         return () => userStore.dialogLeave(dialogId)
     }, [dialogId])
     const [scrolling, setScrolling] = useState('auto')

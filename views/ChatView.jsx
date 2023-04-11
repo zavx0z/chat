@@ -14,7 +14,7 @@ const main = {
     display: 'flex',
     overflow: 'hidden',
 }
-const ChatView = ({user: {id, joinedDialog, dialogs, loadingDialogs, noticePlay, setNoticePlay}}) => {
+const ChatView = ({user: {id, dialogs, loadingDialogs}}) => {
     // useEffect(() => {
     //     sendTokenFCM()
     // }, [])
@@ -25,7 +25,7 @@ const ChatView = ({user: {id, joinedDialog, dialogs, loadingDialogs, noticePlay,
             <Route path={':dialogId'} element={isBrowser && <DialogList loadingDialogs={loadingDialogs} dialogs={dialogs}/>}/>
         </Routes>
         <Routes>
-            <Route path={":dialogId"} element={<DialogView userId={id} dialog={joinedDialog}/>}/>
+            <Route path={":dialogId"} element={<DialogView userId={id}/>}/>
         </Routes>
     </Box>
 }

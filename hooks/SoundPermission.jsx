@@ -17,12 +17,18 @@ const SoundPermission = ({children}) => {
       }
     }
 
-    document.body.addEventListener('click', handleClick)
-    document.body.addEventListener('touchstart', handleClick)
+    const handleInteraction = () => {
+      document.removeEventListener('click', handleInteraction)
+      document.removeEventListener('touchstart', handleInteraction)
+      handleClick()
+    }
+
+    document.addEventListener('click', handleInteraction)
+    document.addEventListener('touchstart', handleInteraction)
 
     return () => {
-      document.body.removeEventListener('click', handleClick)
-      document.body.removeEventListener('touchstart', handleClick)
+      document.removeEventListener('click', handleInteraction)
+      document.removeEventListener('touchstart', handleInteraction)
     }
   }, [granted])
 

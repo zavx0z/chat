@@ -4,23 +4,23 @@ import routes from "../../../routes/routes"
 import {ArrowBackIosNew} from "@mui/icons-material"
 import Typography from "@mui/material/Typography"
 import * as React from "react"
-import {useEffect} from "react"
+import {useEffect, useState} from "react"
 import {useNavigate, useParams} from "react-router-dom"
 import Avatar from "@mui/material/Avatar"
 import Box from "@mui/material/Box"
 import NetworkStatusIcon from "../components/NetworkStatusIcon"
-import {inject, observer} from "mobx-react"
+import {observer} from "mobx-react"
 import NetworkStatusText from "../components/NetworkStatusText"
+import userStore from "../../../stores/userStore"
 
-const ToolbarMobileDialog = ({user: {joinedDialog, dialogLeave, dialogJoin}}) => {
+const ToolbarMobileDialog = () => {
     const navigate = useNavigate()
     const {dialogId} = useParams()
-
+    const [dialog, setDialog] = useState(null)
     useEffect(() => {
-        dialogId && dialogJoin(dialogId)
-        return () => dialogLeave(dialogId)
-    }, [dialogId, dialogLeave, dialogJoin])
-    return <Fade in={typeof joinedDialog !== 'undefined'}>
+        userStore.waitDialog(dialogId).then(setDialog)
+    }, [dialogId])
+    return <Fade in={!!dialog} mountOnEnter>
         <MuiToolbar sx={{
             display: 'flex',
             pl: 0,
@@ -39,7 +39,7 @@ const ToolbarMobileDialog = ({user: {joinedDialog, dialogLeave, dialogJoin}}) =>
             </IconButton>
             <Box sx={{position: 'relative', display: 'flex'}}>
                 <Avatar>
-                    {joinedDialog?.sender.name[0].toUpperCase()}
+                    {dialog?.sender.name[0].toUpperCase()}
                 </Avatar>
             </Box>
             <Box sx={{
@@ -58,9 +58,9 @@ const ToolbarMobileDialog = ({user: {joinedDialog, dialogLeave, dialogJoin}}) =>
                         alignItems: 'center',
                         justifyContent: 'center',
                     }}>
-                    {joinedDialog?.sender.name}
+                    {dialog?.sender.name}
                 </Typography>
-                {!joinedDialog?.sender.isConnected &&
+                {!dialog?.sender.isConnected &&
                     <Typography
                         align={'center'}
                         variant={'caption'}
@@ -70,7 +70,7 @@ const ToolbarMobileDialog = ({user: {joinedDialog, dialogLeave, dialogJoin}}) =>
                             justifyContent: 'center',
                         }}
                     >
-                        Был: {joinedDialog?.lastSentDate}
+                        Был: {dialog?.lastSentDate}
                     </Typography>
                 }
             </Box>
@@ -82,14 +82,14 @@ const ToolbarMobileDialog = ({user: {joinedDialog, dialogLeave, dialogJoin}}) =>
                 flexWrap: 'wrap',
             }}>
                 <Box sx={{display: 'flex', justifyContent: "flex-end"}}>
-                    <NetworkStatusText isConnected={joinedDialog?.sender.isConnected}/>
+                    <NetworkStatusText isConnected={dialog?.sender.isConnected}/>
                     <NetworkStatusIcon
-                        isConnected={joinedDialog?.sender.isConnected}
-                        deviceModel={joinedDialog?.sender.deviceModel}
+                        isConnected={dialog?.sender.isConnected}
+                        deviceModel={dialog?.sender.deviceModel}
                     />
                 </Box>
             </Box>
         </MuiToolbar>
     </Fade>
 }
-export default inject('user')(observer(ToolbarMobileDialog))
+export default observer(ToolbarMobileDialog)

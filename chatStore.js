@@ -4,62 +4,40 @@ import channel from "./channels"
 import action from "./action"
 import {notice} from "./controllers/Notice"
 
-const connected = (store) => sioAfterConnect(store, (sio, store) => {
+const connected = store => sioAfterConnect(store, (sio, store) => {
     sio.emit(channel.CHAT, {}, (response) => {
-        // console.log(store.dialogs.length)
-        console.log([...store.dialogs], response)
         applyPatch(store, {op: 'replace', path: '/dialogs', value: response})
         store.setLoadingDialogs(false)
     })
 })
 
-const send = (store) => sioMiddleware(store, [
+const send = store => sioMiddleware(store, [
     {
         model: 'user',
         action: 'dialogJoin',
-        after: ({sio, args}) => typeof args !== 'undefined' && sio.emit(
-            channel.DIALOG, {
-                action: action.JOIN,
-                data: {
-                    dialogId: args.id,
-                }
-            })
+        after: ({sio, result}) => result
+            .then(dialog => sio.emit(
+                channel.DIALOG, {action: action.JOIN, data: {dialogId: dialog.id}},
+                messages => applyPatch(dialog, {op: 'replace', path: '/messages', value: messages})
+            ))
     },
     {
         model: 'user',
         action: 'dialogLeave',
-        before: ({store}) => applyPatch(store, {op: 'replace', path: '/joinedDialog', value: undefined}),
-        after: ({sio, args}) => args && sio.emit(
-            channel.DIALOG, {
-                action: action.LEAVE,
-                data: {
-                    dialogId: args.id,
-                }
-            })
+        after: ({sio, result}) => result &&
+            sio.emit(channel.DIALOG, {action: action.LEAVE, data: {dialogId: result.id}})
     },
     {
         model: 'dialog',
         action: 'sendMessage',
-        before: ({sio, args, instance}) => args.length && sio.emit(
-            channel.DIALOG, {
-                action: action.WRITE,
-                data: {
-                    dialogId: instance.id,
-                    text: args[0]
-                }
-            })
+        before: ({sio, args, instance}) => args.length &&
+            sio.emit(channel.DIALOG, {action: action.WRITE, data: {dialogId: instance.id, text: args[0]}})
     },
     {
         model: 'dialog',
         action: 'readMessage',
-        after: ({sio, args, instance}) => args && sio.emit(
-            channel.DIALOG, {
-                action: action.READ,
-                data: {
-                    dialogId: parseInt(instance.id),
-                    messageIds: args
-                }
-            })
+        after: ({sio, result, instance}) => result &&
+            sio.emit(channel.DIALOG, {action: action.READ, data: {dialogId: parseInt(instance.id), messageIds: result}})
     },
 ])
 const receive = (store) => {
@@ -106,11 +84,6 @@ const receive = (store) => {
                     dialog.setLastMessageSenderId(payload.data.message.lastMessageSenderId)
                     dialog.setLastMessageText(payload.data.message.lastMessageText)
                     dialog.setLastMessageTime(payload.data.message.lastMessageTime)
-                    break
-                case action.GET: // DYNAMIC
-                    // TODO: lazy load message applyPatch(dialog, {op: 'add', path: '/messages/-', value: payload.data.messages})
-                    applyPatch(dialog, {op: 'replace', path: '/messages', value: payload.data.messages})
-                    applyPatch(store, {op: 'replace', path: '/joinedDialog', value: dialog})
                     break
                 case action.WRITE:  // DYNAMIC
                     if (payload.data.message.senderId === store.id) {  // отправленное собой

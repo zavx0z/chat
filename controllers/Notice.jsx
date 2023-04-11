@@ -12,8 +12,8 @@ export const notice = types
         played: false
     })
     .actions(self => ({
-        setNoticePlay(bool) {
-            self.played = bool
+        reset() {
+            self.played = false
         },
         play() {
             self.played = true
@@ -25,7 +25,7 @@ const Notice = () => {
     const play = notice.played
     useEffect(() => {
         if (play)
-            audioRef.current.play().then(() => notice.setNoticePlay(false))
+            audioRef.current.play().then(() => notice.reset())
     }, [play])
     return <SoundPermission>
         <audio ref={audioRef}>

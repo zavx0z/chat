@@ -1,4 +1,4 @@
-import {getParent, getRoot, types} from "mobx-state-tree"
+import {getRoot, types} from "mobx-state-tree"
 import {messageModel} from "./messageModel"
 import moment from "moment-timezone"
 import {timezone} from "../utils/date"
