@@ -5,6 +5,7 @@ import {inject, observer} from "mobx-react"
 import DialogView from "./DialogView"
 import DialogList from "./DialogList"
 import {isBrowser} from "react-device-detect"
+import Notice from "../controllers/Notice"
 // import {sendTokenFCM} from "../../../firebase"
 
 const main = {
@@ -13,11 +14,12 @@ const main = {
     display: 'flex',
     overflow: 'hidden',
 }
-const ChatView = ({user: {id, joinedDialog, dialogs, loadingDialogs}}) => {
+const ChatView = ({user: {id, joinedDialog, dialogs, loadingDialogs, noticePlay, setNoticePlay}}) => {
     // useEffect(() => {
     //     sendTokenFCM()
     // }, [])
     return <Box sx={main}>
+        <Notice/>
         <Routes>
             <Route path={'/'} element={<DialogList loadingDialogs={loadingDialogs} dialogs={dialogs}/>}/>
             <Route path={':dialogId'} element={isBrowser && <DialogList loadingDialogs={loadingDialogs} dialogs={dialogs}/>}/>

@@ -3,29 +3,38 @@ import wav from "../sound/notice.wav"
 import ogg from "../sound/notice.ogg"
 import mp3 from "../sound/notice.mp3"
 
-import {inject, observer} from "mobx-react"
-// import {useSnackbar} from "notistack"
+import {observer} from "mobx-react"
+import SoundPermission from "../hooks/SoundPermission"
+import {types} from "mobx-state-tree"
 
-const Notice = ({user: {noticePlay, setNoticePlay}}) => {
-    const audioRef = useRef()
-    // const {enqueueSnackbar} = useSnackbar()
-    useEffect(() => {
-        // audioRef.current.load()
-        audioRef.current.volume = 1.0
-        if (noticePlay) {
-            console.log('notice play')
-            audioRef.current.play().then(() => setNoticePlay(false))
+export const notice = types
+    .model({
+        played: false
+    })
+    .actions(self => ({
+        setNoticePlay(bool) {
+            self.played = bool
+        },
+        play() {
+            console.log('play')
+            self.played = true
         }
-    }, [noticePlay, setNoticePlay])
+    })).create({})
 
-
-    return <>
-        <audio autoPlay ref={audioRef}>
+const Notice = () => {
+    const audioRef = useRef()
+    const play = notice.played
+    useEffect(() => {
+        if (play)
+            audioRef.current.play().then(() => notice.setNoticePlay(false))
+    }, [play])
+    return <SoundPermission>
+        <audio ref={audioRef}>
             <source src={wav} type="audio/wav"/>
             <source src={ogg} type="audio/ogg"/>
             <source src={mp3} type="audio/mp3"/>
         </audio>
-    </>
+    </SoundPermission>
 }
-export default inject('user')(observer(Notice))
+export default observer(Notice)
 

@@ -39,8 +39,6 @@ export const Dialog = types
             self['messages'].push(messageModel.create(data))
         },
         sendMessage(text) {
-            const {setNoticePlay} = getParent(self, 2)
-            setNoticePlay(true)
             self['messages'].push(messageModel.create({
                 id: -1,
                 text: text,
