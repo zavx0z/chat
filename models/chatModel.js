@@ -10,9 +10,13 @@ const chatModel = types
     })
     .volatile(self => ({
         sio: undefined,
-        noticePlay: false
+        noticePlay: false,
+        loadingDialogs: true
     }))
     .actions(self => ({
+        setLoadingDialogs(bool) {
+            self.loadingDialogs = bool
+        },
         getDialog(dialog) {
             const {dialogs} = self
             if (parseInt(dialog))

@@ -1,7 +1,16 @@
-import {sioAfterCreate, sioMiddleware} from "../../middleware/sioMiddleware"
+import {sioAfterConnect, sioAfterCreate, sioMiddleware} from "../../middleware/sioMiddleware"
 import {applyPatch, getPath} from "mobx-state-tree"
 import channel from "./channels"
 import action from "./action"
+
+const connected = (store) => sioAfterConnect(store, (sio, store) => {
+    sio.emit(channel.CHAT, {}, (response) => {
+        // console.log(store.dialogs.length)
+        console.log([...store.dialogs], response)
+        applyPatch(store, {op: 'replace', path: '/dialogs', value: response})
+        store.setLoadingDialogs(false)
+    })
+})
 
 const send = (store) => sioMiddleware(store, [
     {
@@ -55,9 +64,6 @@ const send = (store) => sioMiddleware(store, [
 const receive = (store) => sioAfterCreate(store, (sio, store) => {
     sio.on(channel.CHAT, payload => {  // STATIC
         switch (payload.action) {
-            case action.GET:
-                applyPatch(store, {op: 'replace', path: '/dialogs', value: payload.data})
-                break
             case action.UPDATE:
                 sio.emit(channel.DIALOG, {action: action.JOIN_STATIC, data: {dialogId: payload.data.dialog.id}})
                 payload.data.users.forEach(item => {
@@ -121,10 +127,11 @@ const receive = (store) => sioAfterCreate(store, (sio, store) => {
                 break
         }
     })
-    sio.emit(channel.CHAT, {action: action.GET})  // static
+
 })
 const chatStore = (store) => {
     receive(store)
     send(store)
+    connected(store)
 }
 export default chatStore

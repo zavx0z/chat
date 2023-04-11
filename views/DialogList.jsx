@@ -1,5 +1,5 @@
 import React from "react"
-import {List} from "@mui/material"
+import {LinearProgress, List} from "@mui/material"
 import {useNavigate, useParams} from "react-router-dom"
 import routes from "../../../routes/routes"
 import {observer} from "mobx-react"
@@ -8,7 +8,7 @@ import {isMobile} from "react-device-detect"
 import Divider from "@mui/material/Divider"
 import DialogListItem from "../components/DialogListItem"
 
-const DialogList = ({dialogs, children}) => {
+const DialogList = ({dialogs, children, loadingDialogs}) => {
     const navigate = useNavigate()
     const {dialogId} = useParams()
     return <Box sx={theme => ({
@@ -20,24 +20,24 @@ const DialogList = ({dialogs, children}) => {
         overflow: 'auto',
         overscrollBehavior: 'auto'
     })}>
-        <List sx={{
-            pt: 0,
-            pb: 0
-        }}>
-            {dialogs.map((dialog) =>
-                <DialogListItem
-                    key={dialog.id}
-                    selected={parseInt(dialogId) === dialog.id}
-                    handleClick={() => navigate(routes.chat + '/' + dialog.id)}
-                    dialogTitle={dialog.title}
-                    unreadMessages={dialog.unreadMessages}
-                    lastMessage={dialog.lastMessage}
-                    isConnected={dialog.sender.isConnected}
-                    deviceModel={dialog.sender.deviceModel}
-                    lastVisit={dialog.sender.lastVisit}
-                />
-            )}
-        </List>
+        {loadingDialogs ?
+            <LinearProgress/> :
+            <List sx={{pt: 0, pb: 0}}>
+                {dialogs.map((dialog) =>
+                    <DialogListItem
+                        key={dialog.id}
+                        selected={parseInt(dialogId) === dialog.id}
+                        handleClick={() => navigate(routes.chat + '/' + dialog.id)}
+                        dialogTitle={dialog.title}
+                        unreadMessages={dialog.unreadMessages}
+                        lastMessage={dialog.lastMessage}
+                        isConnected={dialog.sender.isConnected}
+                        deviceModel={dialog.sender.deviceModel}
+                        lastVisit={dialog.sender.lastVisit}
+                    />
+                )}
+            </List>
+        }
         {children}
         <Divider/>
     </Box>
