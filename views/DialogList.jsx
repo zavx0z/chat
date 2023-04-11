@@ -8,18 +8,22 @@ import {isMobile} from "react-device-detect"
 import Divider from "@mui/material/Divider"
 import DialogListItem from "../components/DialogListItem"
 
+const drawerWidth = 400
+const width = isMobile ? {width: "100%"} : {minWidth: drawerWidth, maxWidth: drawerWidth}
+const drawerStyle = theme => ({
+    ...width,
+    height: '100%',
+    position: 'relative',
+    backgroundColor: '#fff',
+    overflow: 'auto',
+    overscrollBehavior: 'auto',
+    ...!isMobile && {borderRight: `1px solid ${theme.palette.grey[300]}`},
+})
+
 const DialogList = ({dialogs, children, loadingDialogs}) => {
     const navigate = useNavigate()
     const {dialogId} = useParams()
-    return <Box sx={theme => ({
-        height: '100%',
-        position: 'relative',
-        minWidth: isMobile ? '100%' : 400,
-        backgroundColor: '#fff',
-        borderRight: `${isMobile ? 0 : 1}px solid ${theme.palette.grey[300]}`,
-        overflow: 'auto',
-        overscrollBehavior: 'auto'
-    })}>
+    return <Box sx={theme => drawerStyle(theme)}>
         {loadingDialogs ?
             <LinearProgress/> :
             <List sx={{pt: 0, pb: 0}}>

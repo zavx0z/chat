@@ -16,7 +16,6 @@ export const notice = types
             self.played = bool
         },
         play() {
-            console.log('play')
             self.played = true
         }
     })).create({})

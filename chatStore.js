@@ -113,7 +113,6 @@ const receive = (store) => {
                     applyPatch(store, {op: 'replace', path: '/joinedDialog', value: dialog})
                     break
                 case action.WRITE:  // DYNAMIC
-                    notice.play()
                     if (payload.data.message.senderId === store.id) {  // отправленное собой
                         const selfMessage = dialog.messages.find(msg => msg.text === payload.data.message.text && msg.sent)
                         applyPatch(store, {op: 'replace', path: getPath(selfMessage), value: payload.data.message})
