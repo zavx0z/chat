@@ -1,11 +1,9 @@
 import {types} from 'mobx-state-tree'
 import {Dialog} from "./dialogModel"
-import {UsersModel} from "./usersModel"
 
 const chatModel = types
     .model({
         dialogs: types.array(Dialog),
-        users: types.array(UsersModel),
     })
     .volatile(self => ({
         sio: undefined,
