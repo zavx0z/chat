@@ -1,9 +1,9 @@
 import {types} from 'mobx-state-tree'
-import {Dialog} from "./dialogModel"
+import dialogModel from "./dialogModel"
 
 const chatModel = types
     .model({
-        dialogs: types.array(Dialog),
+        dialogs: types.array(dialogModel),
     })
     .volatile(self => ({
         sio: undefined,
@@ -11,37 +11,39 @@ const chatModel = types
     }))
     .actions(self => ({
         setLoadingDialogs(bool) {
+            console.log('dialogs', 'modeDialogs', bool ? 'Запрос - стартовал' : 'Запрос - окончен')
             self.loadingDialogs = bool
         },
-        getDialog(dialog) {
+        getDialog(idOrName) {
             const {dialogs} = self
-            if (parseInt(dialog))
-                return dialogs.find(item => item.id === parseInt(dialog))
-            else if (typeof dialog == 'string' && dialog.length > 0)
-                return dialogs.find(item => item.name === dialog)
+            if (parseInt(idOrName))
+                return dialogs.find(item => item.id === parseInt(idOrName))
+            else if (typeof idOrName == 'string' && idOrName.length > 0)
+                return dialogs.find(item => item.name === idOrName)
         },
-        getUser(userId) {
-            return self.users.find(user => user.id === userId)
-        },
-        async waitDialog(dialogId) {
-            const {loadingDialogs} = self
-            if (loadingDialogs) {
+        async waitDialog(id) {
+            if (self.loadingDialogs || self.loadingUsers) {
+                console.log('dialogs', 'modelDialogs', 'Данные: Запрос')
                 await new Promise((resolve) => {
                     const intervalId = setInterval(() => {
-                        if (!self.loadingDialogs) {
+                        if (!self.loadingDialogs && !self.loadingUsers) {
+                            console.log('dialogs', 'modelDialogs', 'Данные: Получены')
                             clearInterval(intervalId)
                             resolve()
                         }
                     }, 100)
                 })
-            }
-            return this.getDialog(dialogId)
+            } else
+                console.log('dialogs', 'modelDialogs', 'Данные: Присутствуют')
+            return this.getDialog(id)
         },
-        async dialogJoin(dialogId) {
-            return this.waitDialog(dialogId)
+        async dialogJoin(id) {
+            console.log('dialogs', 'modelDialogs', 'Подписка на детальные обновления')
+            return this.waitDialog(id)
         },
-        dialogLeave(dialog) {
-            return this.getDialog(dialog)
+        dialogLeave(idOrName) {
+            console.log('dialogs', 'modelDialogs', 'Отписка на детальные обновления')
+            return this.getDialog(idOrName)
         }
     }))
     .views(self => ({

@@ -5,7 +5,7 @@ import {timezone} from "../utils/date"
 
 const randomNegativeId = (min = -4444, max = -1) => -Math.floor(Math.random() * (max - min + 1)) + min
 
-export const Dialog = types
+const dialogModel = types
     .model('dialog', {
         id: types.identifierNumber,
         name: types.string,
@@ -104,3 +104,4 @@ export const Dialog = types
                 return name
         }
     }))
+export default dialogModel
