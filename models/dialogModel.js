@@ -3,6 +3,8 @@ import {messageModel} from "./messageModel"
 import moment from "moment-timezone"
 import {timezone} from "../utils/date"
 
+const randomNegativeId = (min = -4444, max = -1) => -Math.floor(Math.random() * (max - min + 1)) + min
+
 export const Dialog = types
     .model('dialog', {
         id: types.identifierNumber,
@@ -39,14 +41,16 @@ export const Dialog = types
             self['messages'].push(messageModel.create(data))
         },
         sendMessage(text) {
-            self['messages'].push(messageModel.create({
-                id: -1,
+            const message = messageModel.create({
+                id: randomNegativeId(),
                 text: text,
                 senderId: getRoot(self)['id'],
                 created: moment().toISOString(),
                 read: false,
                 sent: true
-            }))
+            })
+            self['messages'].push(message)
+            return message
         },
         readMessage() {
             if (self['unreadMessages']) {

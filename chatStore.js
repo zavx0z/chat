@@ -30,8 +30,12 @@ const send = store => sioMiddleware(store, [
     {
         model: 'dialog',
         action: 'sendMessage',
-        before: ({sio, args, instance}) => args.length &&
-            sio.emit(channel.DIALOG, {action: action.WRITE, data: {dialogId: instance.id, text: args[0]}})
+        after: ({sio, result, instance}) => {
+            sio.emit(channel.DIALOG,
+                {action: action.WRITE, data: {dialogId: instance.id, text: result.text}},
+                msg => applyPatch(store, {op: 'replace', path: getPath(result), value: msg})
+            )
+        }
     },
     {
         model: 'dialog',
@@ -71,12 +75,7 @@ const receive = (store) => {
                     dialog.setLastMessageTime(payload.data.message.lastMessageTime)
                     break
                 case action.WRITE:  // DYNAMIC
-                    if (payload.data.message.senderId === store.id) {  // отправленное собой
-                        const selfMessage = dialog.messages.find(msg => msg.text === payload.data.message.text && msg.sent)
-                        applyPatch(store, {op: 'replace', path: getPath(selfMessage), value: payload.data.message})
-                    } else {  // отправленное собеседником
-                        dialog.addMessage(payload.data.message)
-                    }
+                    dialog.addMessage(payload.data.message)
                     break
                 case action.READ: // DYNAMIC
                     payload.data.messageIds.forEach(msgId => dialog.messages.find(msg => msg.id === msgId).setRead())
