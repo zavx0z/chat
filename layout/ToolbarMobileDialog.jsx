@@ -11,14 +11,14 @@ import Box from "@mui/material/Box"
 import NetworkStatusIcon from "../components/NetworkStatusIcon"
 import {observer} from "mobx-react"
 import NetworkStatusText from "../components/NetworkStatusText"
-import userStore from "../../../stores/userStore"
+import rootStore from "../../../stores/rootStore"
 
 const ToolbarMobileDialog = () => {
     const navigate = useNavigate()
     const {dialogId} = useParams()
     const [dialog, setDialog] = useState(null)
     useEffect(() => {
-        userStore.waitDialog(dialogId).then(setDialog)
+        rootStore.waitDialog(dialogId).then(setDialog)
     }, [dialogId])
     return <Fade in={!!dialog} mountOnEnter>
         <MuiToolbar sx={{

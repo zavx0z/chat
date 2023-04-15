@@ -13,7 +13,7 @@ const connected = store => sioAfterConnect(store, (sio, store) => {
 
 const send = store => sioMiddleware(store, [
     {
-        model: 'user',
+        model: 'root',
         action: 'dialogJoin',
         after: ({sio, result}) => result
             .then(dialog => sio.emit(
@@ -22,7 +22,7 @@ const send = store => sioMiddleware(store, [
             ))
     },
     {
-        model: 'user',
+        model: 'root',
         action: 'dialogLeave',
         after: ({sio, result}) => result &&
             sio.emit(channel.DIALOG, {action: action.LEAVE, data: {dialogId: result.id}})

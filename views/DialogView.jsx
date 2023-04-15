@@ -5,14 +5,14 @@ import {observer} from "mobx-react"
 import useViewportHeight from "../../../layouts/hooks/useViewportHeight"
 import Box from "@mui/material/Box"
 import {useParams} from "react-router-dom"
-import userStore from "../../../stores/userStore"
+import rootStore from "../../../stores/rootStore"
 
 const DialogView = ({userId}) => {
     const {dialogId} = useParams()
     const [dialog, setDialog] = useState(null)
     useEffect(() => {
-        userStore.dialogJoin(dialogId).then(setDialog)
-        return () => userStore.dialogLeave(dialogId)
+        rootStore.dialogJoin(dialogId).then(setDialog)
+        return () => rootStore.dialogLeave(dialogId)
     }, [dialogId])
     const [scrolling, setScrolling] = useState('auto')
     const {isKeyboardOpen} = useViewportHeight()

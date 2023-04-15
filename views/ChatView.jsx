@@ -14,7 +14,7 @@ const main = {
     display: 'flex',
     overflow: 'hidden',
 }
-const ChatView = ({user: {id, dialogs, loadingDialogs}}) => {
+const ChatView = ({root: {id, dialogs, loadingDialogs}}) => {
     // useEffect(() => {
     //     sendTokenFCM()
     // }, [])
@@ -29,4 +29,4 @@ const ChatView = ({user: {id, dialogs, loadingDialogs}}) => {
         </Routes>
     </Box>
 }
-export default inject('user')(observer(ChatView))
+export default inject('root')(observer(ChatView))
