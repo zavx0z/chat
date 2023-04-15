@@ -6,7 +6,6 @@ const chatModel = types
         dialogs: types.array(Dialog),
     })
     .volatile(self => ({
-        sio: undefined,
         loadingDialogs: true
     }))
     .actions(self => ({

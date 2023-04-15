@@ -1,4 +1,4 @@
-import {sioAfterConnect, sioAfterCreate, sioMiddleware} from "../../middleware/sioMiddleware"
+import {sioAfterConnect, sioAfterCreate, sioMiddleware} from "../sio/sioMiddleware"
 import {applyPatch, getPath} from "mobx-state-tree"
 import channel from "./channels"
 import action from "./action"
