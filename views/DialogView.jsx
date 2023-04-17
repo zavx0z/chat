@@ -11,6 +11,7 @@ const DialogView = ({userId}) => {
     const {dialogId} = useParams()
     const [dialog, setDialog] = useState(null)
     useEffect(() => {
+        console.log('dialogView')
         rootStore.dialogJoin(dialogId).then(setDialog)
         return () => rootStore.dialogLeave(dialogId)
     }, [dialogId])

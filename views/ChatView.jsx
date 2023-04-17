@@ -6,7 +6,7 @@ import DialogView from "./DialogView"
 import DialogList from "./DialogList"
 import {isBrowser} from "react-device-detect"
 import Notice from "../controllers/Notice"
-// import {sendTokenFCM} from "../../../firebase"
+import sendTokenFCM from "../../pwa/firebase"
 
 const main = {
     height: '100vh',
@@ -15,9 +15,9 @@ const main = {
     overflow: 'hidden',
 }
 const ChatView = ({root: {id, dialogs, loadingDialogs}}) => {
-    // useEffect(() => {
-    //     sendTokenFCM()
-    // }, [])
+    useEffect(() => {
+        sendTokenFCM()
+    }, [])
     return <Box sx={main}>
         <Notice/>
         <Routes>
