@@ -11,10 +11,10 @@ import {timezone} from "../utils/date"
 const DialogListItem = ({selected, handleClick, dialogTitle, unreadMessages, lastMessage, isConnected, deviceModel, lastVisit}) => {
     const statusConnected = (isConnected, lastVisit) => isConnected ? 'Online' : `Был: ${moment.utc(lastVisit).tz(timezone).startOf("day").format('DD.MM.YYYY')}`
     return <ListItemButton
-        sx={{
-            maxHeight: 56
-        }}
-        divider
+        sx={theme=>({
+            maxHeight: theme.spacing(7),
+            minHeight: theme.spacing(7),
+        })}
         dense
         selected={selected}
         onClick={handleClick}

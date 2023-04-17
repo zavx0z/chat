@@ -5,7 +5,6 @@ import routes from "../../../routes/routes"
 import {observer} from "mobx-react"
 import Box from "@mui/material/Box"
 import {isMobile} from "react-device-detect"
-import Divider from "@mui/material/Divider"
 import DialogListItem from "../components/DialogListItem"
 
 const drawerWidth = 400
@@ -43,7 +42,6 @@ const DialogList = ({dialogs, children, loadingDialogs}) => {
             </List>
         }
         {children}
-        <Divider/>
     </Box>
 }
 export default observer(DialogList)
