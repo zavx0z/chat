@@ -20,7 +20,7 @@ const SoundPermission = ({children}) => {
     const handleInteraction = () => {
       document.removeEventListener('click', handleInteraction)
       document.removeEventListener('touchstart', handleInteraction)
-      handleClick()
+      setTimeout(handleClick, 444)
     }
 
     document.addEventListener('click', handleInteraction)
