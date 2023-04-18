@@ -21,11 +21,11 @@ const chatModel = types
                 return dialogs.find(item => item.name === idOrName)
         },
         async waitDialog(id) {
-            if (self.loadingDialogs || self.loadingUsers) {
+            if (self.loadingDialogs || self['loadingUsers']) {
                 console.log('dialogs', 'modelDialogs', 'Данные: Запрос')
                 await new Promise((resolve) => {
                     const intervalId = setInterval(() => {
-                        if (!self.loadingDialogs && !self.loadingUsers) {
+                        if (!self.loadingDialogs && !self['loadingUsers']) {
                             console.log('dialogs', 'modelDialogs', 'Данные: Получены')
                             clearInterval(intervalId)
                             resolve()

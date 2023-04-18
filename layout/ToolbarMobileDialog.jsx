@@ -29,14 +29,6 @@ const ToolbarMobileDialog = () => {
             justifyContent: 'space-between',
             alignContent: 'center',
         }}>
-            <IconButton
-                sx={{display: 'flex', mr: 1}}
-                color={'secondary'}
-                size={'large'}
-                onClick={() => navigate(routes.chat)}
-            >
-                <ArrowBackIosNew sx={{color: 'white'}}/>
-            </IconButton>
             <Box sx={{position: 'relative', display: 'flex'}}>
                 <Avatar>
                     {dialog?.sender.name[0].toUpperCase()}
@@ -73,21 +65,6 @@ const ToolbarMobileDialog = () => {
                         Был: {dialog?.lastSentDate}
                     </Typography>
                 }
-            </Box>
-            <Box sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                justifyItems: 'space-between',
-                justifyContent: 'flex-end',
-                flexWrap: 'wrap',
-            }}>
-                <Box sx={{display: 'flex', justifyContent: "flex-end"}}>
-                    <NetworkStatusText isConnected={dialog?.sender.isConnected}/>
-                    <NetworkStatusIcon
-                        isConnected={dialog?.sender.isConnected}
-                        deviceModel={dialog?.sender.deviceModel}
-                    />
-                </Box>
             </Box>
         </MuiToolbar>
     </Fade>

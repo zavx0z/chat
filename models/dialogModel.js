@@ -65,6 +65,15 @@ const dialogModel = types
         getOwnerUser() {
             const {users} = getRoot(self)
             return users.find(user => user.id === self['ownerId'])
+        },
+        getCompanion() {
+            const {getUser, id} = getRoot(self)
+            const {participants} = self
+            if (participants.length === 2) {
+                const companion = participants.find(item => item !== id)
+                return getUser(companion)
+            }
+            return null
         }
     }))
     .views(self => ({
