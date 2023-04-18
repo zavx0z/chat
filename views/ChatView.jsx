@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react'
+import React from 'react'
 import Box from "@mui/material/Box"
 import {Route, Routes} from "react-router-dom"
 import {inject, observer} from "mobx-react"
@@ -6,7 +6,6 @@ import DialogView from "./DialogView"
 import DialogList from "./DialogList"
 import {isBrowser} from "react-device-detect"
 import Notice from "../controllers/Notice"
-import sendTokenFCM from "../../pwa/firebase"
 
 const main = {
     height: '100vh',
@@ -14,11 +13,8 @@ const main = {
     display: 'flex',
     overflow: 'hidden',
 }
-const ChatView = ({root: {id, dialogs, loadingDialogs}}) => {
-    useEffect(() => {
-        sendTokenFCM()
-    }, [])
-    return <Box sx={main}>
+const ChatView = ({root: {id, dialogs, loadingDialogs}}) =>
+    <Box sx={main}>
         <Notice/>
         <Routes>
             <Route path={'/'} element={<DialogList loadingDialogs={loadingDialogs} dialogs={dialogs}/>}/>
@@ -28,5 +24,4 @@ const ChatView = ({root: {id, dialogs, loadingDialogs}}) => {
             <Route path={":dialogId"} element={<DialogView userId={id}/>}/>
         </Routes>
     </Box>
-}
 export default inject('root')(observer(ChatView))
