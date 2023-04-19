@@ -2,7 +2,7 @@ import InputMessage from "../components/InputMessage"
 import React, {useEffect, useState} from "react"
 import Chat from "../containers/Chat"
 import {inject, observer} from "mobx-react"
-import useViewportHeight from "../../../hooks/useViewportHeight"
+import useViewportHeight from "../../layout/hooks/useViewportHeight"
 import Box from "@mui/material/Box"
 import {useParams} from "react-router-dom"
 
@@ -21,7 +21,7 @@ const DialogView = ({userId, root: {dialogJoin, dialogLeave}}) => {
     useEffect(() => {
         dialogJoin(dialogId).then(setDialog)
         return () => dialogLeave(dialogId)
-    }, [dialogId])
+    }, [dialogId, dialogJoin, dialogLeave])
 
     const [scrolling, setScrolling] = useState('auto')
     const {isKeyboardOpen} = useViewportHeight()
