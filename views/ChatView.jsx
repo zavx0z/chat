@@ -6,7 +6,6 @@ import DialogView from "./DialogView"
 import Notice from "../controllers/Notice"
 
 const main = {
-    height: '100vh',
     width: '100%',
     display: 'flex',
     overflow: 'hidden',
