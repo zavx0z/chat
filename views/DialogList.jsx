@@ -2,7 +2,7 @@ import React from "react"
 import {LinearProgress, List} from "@mui/material"
 import {useNavigate, useParams} from "react-router-dom"
 import routes from "../../../routes/routes"
-import {observer} from "mobx-react"
+import {inject, observer} from "mobx-react"
 import Box from "@mui/material/Box"
 import {isMobile} from "react-device-detect"
 import DialogListItem from "../components/DialogListItem"
@@ -19,7 +19,7 @@ const drawerStyle = theme => ({
     ...!isMobile && {borderRight: `1px solid ${theme.palette.grey[300]}`},
 })
 
-const DialogList = ({dialogs, children, loadingDialogs}) => {
+const DialogList = ({children, root: {dialogs, loadingDialogs}}) => {
     const navigate = useNavigate()
     const {dialogId} = useParams()
     return <Box sx={theme => drawerStyle(theme)}>
@@ -44,4 +44,4 @@ const DialogList = ({dialogs, children, loadingDialogs}) => {
         {children}
     </Box>
 }
-export default observer(DialogList)
+export default inject('root')(observer(DialogList))
