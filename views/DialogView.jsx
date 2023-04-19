@@ -2,7 +2,7 @@ import InputMessage from "../components/InputMessage"
 import React, {useEffect, useState} from "react"
 import Chat from "../containers/Chat"
 import {inject, observer} from "mobx-react"
-import useViewportHeight from "../../../layouts/hooks/useViewportHeight"
+import useViewportHeight from "../../../hooks/useViewportHeight"
 import Box from "@mui/material/Box"
 import {useParams} from "react-router-dom"
 
