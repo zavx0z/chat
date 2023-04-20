@@ -9,8 +9,8 @@ const NetworkStatusText = ({isConnected}) => {
         if (!online)
             return 'нет сети'
         else if (isConnected)
-            return 'Online'
-        else return 'Offline'
+            return 'online'
+        else return 'offline'
     }, [online, isConnected])
 
     const color = useMemo(() => {
@@ -23,8 +23,8 @@ const NetworkStatusText = ({isConnected}) => {
     }, [online, isConnected])
     return <Typography
         color={color}
-        variant={"subtitle2"}
-        pr={.44}
+        variant={"caption"}
+        sx={{mt: '-4px'}}
     >
         {text}
     </Typography>
