@@ -2,6 +2,7 @@ import {getRoot, types} from "mobx-state-tree"
 import {messageModel} from "./messageModel"
 import moment from "moment-timezone"
 import {timezone} from "../utils/date"
+import userModel from "../../users/models/modelUser"
 
 const randomNegativeId = (min = -4444, max = -1) => -Math.floor(Math.random() * (max - min + 1)) + min
 
@@ -18,6 +19,9 @@ const dialogModel = types
         lastMessageSenderId: types.number,
         participants: types.array(types.integer)
     })
+    .volatile(self => ({
+        // users: types.array(types.reference(userModel))
+    }))
     .actions(self => ({
         incUnreadMessages() {
             self.unreadMessages = self.unreadMessages + 1
@@ -113,4 +117,7 @@ const dialogModel = types
                 return name
         }
     }))
+
+
 export default dialogModel
+

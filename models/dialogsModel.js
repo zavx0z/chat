@@ -1,7 +1,7 @@
 import {types} from 'mobx-state-tree'
 import dialogModel from "./dialogModel"
 
-const chatModel = types
+const dialogsModel = types
     .model({
         dialogs: types.array(dialogModel),
     })
@@ -55,4 +55,4 @@ const chatModel = types
         },
     }))
 
-export default chatModel
+export default dialogsModel

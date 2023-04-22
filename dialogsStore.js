@@ -3,6 +3,7 @@ import {applyPatch, getPath} from "mobx-state-tree"
 import channel from "./channels"
 import action from "./action"
 import {notice} from "./controllers/Notice"
+import {dialogProton as dialog} from "../../proton/dialogProton"
 
 const connected = store => sioAfterConnect(store, (sio, store) => {
     sio.emit(channel.CHAT, {}, (response) => {
@@ -88,9 +89,9 @@ const receive = (store) => {
 
     })
 }
-const chatStore = (store) => {
+const dialogsStore = (store) => {
     receive(store)
     send(store)
     connected(store)
 }
-export default chatStore
+export default dialogsStore
