@@ -19,7 +19,7 @@ const drawerStyle = theme => ({
     ...!isMobile && {borderRight: `1px solid ${theme.palette.grey[300]}`},
 })
 
-const DialogList = ({children, root: {dialogs, loadingDialogs}}) => {
+const DialogList = ({children, quantum: {dialogs, loadingDialogs}}) => {
     const navigate = useNavigate()
     const {dialogId} = useParams()
     return <Box sx={theme => drawerStyle(theme)}>
@@ -44,4 +44,4 @@ const DialogList = ({children, root: {dialogs, loadingDialogs}}) => {
         {children}
     </Box>
 }
-export default inject('root')(observer(DialogList))
+export default inject('quantum')(observer(DialogList))

@@ -7,7 +7,7 @@ import {Fade} from "@mui/material"
 import Box from "@mui/material/Box"
 
 
-const NetworkStatusCompanion = ({root: {waitDialog, waitUser}}) => {
+const NetworkStatusCompanion = ({quantum: {waitDialog, waitUser}}) => {
     const [companion, setCompanion] = useState(null)
     const {dialogId} = useParams()
     useEffect(() => {
@@ -19,4 +19,4 @@ const NetworkStatusCompanion = ({root: {waitDialog, waitUser}}) => {
         </Box>
     </Fade>
 }
-export default inject('root')(observer(NetworkStatusCompanion))
+export default inject('quantum')(observer(NetworkStatusCompanion))

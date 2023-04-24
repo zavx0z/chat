@@ -7,7 +7,7 @@ import {Fade, Slide} from "@mui/material"
 import Avatar from "@mui/material/Avatar"
 import Box from "@mui/material/Box"
 
-const Companion = ({root: {waitDialog, waitUser}}) => {
+const Companion = ({quantum: {waitDialog, waitUser}}) => {
     const [companion, setCompanion] = useState(null)
     const {dialogId} = useParams()
     useEffect(() => {
@@ -51,4 +51,4 @@ const Companion = ({root: {waitDialog, waitUser}}) => {
         </Box>
     </Fade>
 }
-export default inject('root')(observer(Companion))
+export default inject('quantum')(observer(Companion))

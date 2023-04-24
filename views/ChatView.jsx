@@ -10,11 +10,11 @@ const main = {
     display: 'flex',
     overflow: 'hidden',
 }
-const ChatView = ({root: {id}}) =>
+const ChatView = ({quantum: {id}}) =>
     <Box sx={main}>
         <Notice/>
         <Routes>
             <Route path={":dialogId"} element={<DialogView userId={id}/>}/>
         </Routes>
     </Box>
-export default inject('root')(observer(ChatView))
+export default inject('quantum')(observer(ChatView))
