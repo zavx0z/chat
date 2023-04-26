@@ -8,7 +8,7 @@ import SoundPermission from "../hooks/SoundPermission"
 import {types} from "mobx-state-tree"
 
 export const notice = types
-    .model({
+    .model('protonNotice',{
         played: false
     })
     .actions(self => ({
