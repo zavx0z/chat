@@ -14,7 +14,7 @@ const chatBlockStyles = {
     overflow: 'hidden',
 }
 
-const DialogView = ({userId, quantum: {dialogJoin, dialogLeave}}) => {
+const DialogView = ({userId, everything: {dialogJoin, dialogLeave}}) => {
     const {dialogId} = useParams()
     const [dialog, setDialog] = useState(null)
 
@@ -45,4 +45,4 @@ const DialogView = ({userId, quantum: {dialogJoin, dialogLeave}}) => {
         />
     </Box>
 }
-export default inject('quantum')(observer(DialogView))
+export default inject('everything')(observer(DialogView))
