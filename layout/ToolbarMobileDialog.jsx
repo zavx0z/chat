@@ -11,7 +11,7 @@ import Box from "@mui/material/Box"
 import NetworkStatusIcon from "../components/NetworkStatusIcon"
 import {observer} from "mobx-react"
 import NetworkStatusText from "../components/NetworkStatusText"
-import store from "../../../store"
+import store from "../../../model"
 
 const ToolbarMobileDialog = () => {
     const navigate = useNavigate()
