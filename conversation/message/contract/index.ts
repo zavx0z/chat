@@ -22,4 +22,4 @@ export interface Message {
   readonly createdAt: string
   readonly sequence: number
 }
-import type { User } from '@chat/user'
+import type { User } from '@zavx0z/chat/user'

@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "lib": [
+      "ESNext",
+      "DOM",
+      "dom.iterable"
+    ],
+    "types": [
+      "bun"
+    ],
+    "target": "ESNext",
+    "module": "Preserve",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "customConditions": [
+      "bun",
+      "node"
+    ],
+    "jsx": "react-jsx",
+    "jsxImportSource": "@zavx0z/immersive-jsx",
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true
+  },
+  "include": [
+    "conversation/**/*.ts",
+    "conversation/**/*.tsx",
+    "user/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

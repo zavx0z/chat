@@ -1,0 +1,9 @@
+[install]
+peer = false
+linker = "hoisted"
+
+[loader]
+".wgsl" = "text"
+
+[test]
+preload = ["./test/preload.ts"]

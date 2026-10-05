@@ -1,5 +1,5 @@
-import type { User } from '@chat/user'
-import type { Message } from '@chat-conversation/message'
+import type { User } from '@zavx0z/chat/user'
+import type { Message } from '@zavx0z/chat/message'
 
 /**
 Backend сообщает допустимые действия текущего пользователя в конкретной
