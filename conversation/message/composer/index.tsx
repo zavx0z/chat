@@ -1,5 +1,5 @@
 /** Общий composer сообщения: стандартный textarea/IME, отправка и host slots. */
-import {useState} from "@zavx0z/immersive-component"
+import {useRef, useState} from "@zavx0z/immersive-component"
 import Button from "@zavx0z/immersive-ui-component-button-basic"
 import IconButton from "@zavx0z/immersive-ui-component-button-icon"
 import svgIcon from "@zavx0z/immersive-tech-svg-encode"
@@ -10,14 +10,41 @@ export type {ChatMessageComposer} from "./contract"
 
 const sendIcon = svgIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 20V4m-7 7 7-7 7 7" fill="none" stroke="#161616" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>')
 const stopIcon = svgIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2" fill="#161616"/></svg>')
+const attachIcon = svgIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="#bbbbbb" stroke-width="1.8" stroke-linecap="round"/></svg>')
 
 
 export default function ChatMessageComposer(props: Contract.Input) {
   const [focused, setFocused] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const dragDepth = useRef(0)
+  const fileDrag = (event: DragEvent) => props.onFiles !== undefined && event.dataTransfer?.types.includes("Files") === true
   const pending = props.canCancel === true
   const canSend = !props.busy && (props.draft.trim().length > 0 || (props.attachments?.length ?? 0) > 0)
   return <div
     data-chat-composer=""
+    data-file-drop={dragging && !props.busy ? "active" : undefined}
+    onDragEnter={event => {
+      if (!fileDrag(event)) return
+      dragDepth.current++
+      setDragging(true)
+    }}
+    onDragLeave={() => {
+      dragDepth.current = Math.max(0, dragDepth.current - 1)
+      if (dragDepth.current === 0) setDragging(false)
+    }}
+    onDragOver={event => {
+      if (!fileDrag(event)) return
+      event.preventDefault()
+      event.dataTransfer!.dropEffect = props.busy ? "none" : "copy"
+    }}
+    onDrop={event => {
+      dragDepth.current = 0
+      setDragging(false)
+      if (!fileDrag(event)) return
+      event.preventDefault()
+      const files = Array.from(event.dataTransfer!.files)
+      if (!props.busy && files.length > 0) props.onFiles?.(files)
+    }}
     style={css`
       box-sizing: border-box;
       position: relative;
@@ -34,6 +61,11 @@ export default function ChatMessageComposer(props: Contract.Input) {
 
       &:focus-within {
         border-color: var(--widget-focus-outline);
+      }
+
+      &[data-file-drop="active"] {
+        border-color: var(--widget-focus-outline);
+        background: var(--widget-hover-background);
       }
     `}
   >
@@ -123,7 +155,25 @@ export default function ChatMessageComposer(props: Contract.Input) {
 }
 
 function AttachButton(props: Readonly<{busy: boolean, onAttach(): void}>) {
-  return <button type="button" aria-label="Прикрепить файл" disabled={props.busy} onClick={props.onAttach}>+</button>
+  return <IconButton
+    label="Прикрепить файл"
+    iconSrc={attachIcon}
+    iconSize={22}
+    variant="text"
+    disabled={props.busy}
+    onClick={props.onAttach}
+    style={css`
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      min-height: 32px;
+      margin-left: auto;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+    `}
+  />
 }
 
 /** Восемь preview занимают одну прокручиваемую строку, не вытесняют composer controls. */

@@ -16,8 +16,7 @@ export type MediaDraftAttachment = Readonly<{
   release(): void
 }>
 
-export type MediaOptions = Readonly<{
-  browserDocument: Document
+export type MediaReadOptions = Readonly<{
   signal?: AbortSignal
   capabilities?: Readonly<{image?: boolean, audio?: boolean, files?: boolean}> | null
   existing?: readonly MediaDraftAttachment[]
@@ -25,13 +24,16 @@ export type MediaOptions = Readonly<{
   isCurrent?(): boolean
 }>
 
+/** Только выбор через системный диалог требует native Document. */
+export type MediaOptions = MediaReadOptions & Readonly<{browserDocument: Document}>
+
 type FileHandle = {getFile(): Promise<File>}
 type HostWindow = Window & {showOpenFilePicker?(options: {multiple: boolean}): Promise<readonly FileHandle[]>}
 const MAX_COUNT = 8
 const MAX_RAW_BYTES = 8 * 1024 * 1024
 const MAX_JSON_BYTES = 16 * 1024 * 1024
 const encoder = new TextEncoder()
-const current = (options: MediaOptions) => !options.signal?.aborted && options.isCurrent?.() !== false
+const current = (options: MediaReadOptions) => !options.signal?.aborted && options.isCurrent?.() !== false
 const cancelled = (error: unknown) => error !== null && typeof error === "object" && "name" in error && error.name === "AbortError"
 
 function base64(bytes: Uint8Array): string {
@@ -51,7 +53,7 @@ function textJsonBytes(text: string): number {
   return bytes
 }
 
-function permitted(file: File, options: MediaOptions): void {
+function permitted(file: File, options: MediaReadOptions): void {
   const capabilities = options.capabilities
   // Неизвестные capabilities позволяют подготовить draft; явный отрицательный ответ сохраняется.
   if (options.capabilities == null) return
@@ -60,7 +62,7 @@ function permitted(file: File, options: MediaOptions): void {
 }
 
 /** Преобразует только ограниченный набор native Files; при отмене не оставляет URLs или draft refs. */
-export async function filesToMedia(files: readonly File[], options: MediaOptions): Promise<readonly MediaDraftAttachment[]> {
+export async function filesToMedia(files: readonly File[], options: MediaReadOptions | MediaOptions): Promise<readonly MediaDraftAttachment[]> {
   if (!current(options)) return []
   const existing = options.existing ?? []
   if (files.length + existing.length > MAX_COUNT) throw new Error("Можно добавить не более 8 вложений")

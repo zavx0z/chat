@@ -12,6 +12,8 @@ export declare namespace ChatMessageComposer {
     onSend(): void
     onCancel(): void
     onAttach?: (() => void) | undefined
+    /** Файлы из стандартного drop; подготовка и пределы вложений принадлежат принимающему владельцу. */
+    onFiles?: ((files: readonly File[]) => void) | undefined
     onRemove?: ((id: string) => void) | undefined
     onPreview?: ((attachment: MediaDraftAttachment) => void) | undefined
     onFocus?: (() => void) | undefined
