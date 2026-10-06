@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 3,
+  "metadata": {
+    "id": "893116909c4713dfedcc13e8ce40b1bed70f7af3ac5a7ab42db962296bcb821d",
+    "executorId": "e1bcdce2-0511-50da-8bc8-135171e90568",
+    "executorLabel": "Основной",
+    "address": "/chat",
+    "pending": [],
+    "historyComplete": true,
+    "status": "idle",
+    "error": null,
+    "controlVersion": 9,
+    "executionBaseline": {
+      "model": "gpt-6-astra",
+      "thoughtLevel": "medium"
+    },
+    "sessionId": "01a11211-0d8e-7f00-b35a-1f4e2437590c",
+    "connectionId": "codex",
+    "cwd": "."
+  },
+  "history": {
+    "revision": 4,
+    "total": 1,
+    "lastSequence": 1
+  },
+  "journal": "6ea4b827d2eeb8f5e5f2e0a48da704324a44fbd13c123d5abf91694a356ddeec.json.journal.392c6a25-a9ee-4efc-8dcd-0fa2cd33214f.ndjson",
+  "committedBytes": 6820,
+  "hash": "85096472d5a36946e59850fb850a625c7da3a37ef32aa71c3c84b3b4fa4fde3b",
+  "displayHistory": {
+    "revision": 4,
+    "total": 1,
+    "lastSequence": 1
+  }
+}
