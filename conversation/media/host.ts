@@ -1,6 +1,6 @@
 import {createContext} from "@zavx0z/immersive-component"
 import type {MediaAttachment, MediaImageCache} from "./browser"
-import type {MediaPreview} from "../message/view/contract"
+import type {MediaPreview} from "../message/view/contract/preview"
 
 export type MediaSource = MediaAttachment | string
 export type MediaAudioState = Readonly<{playing: boolean, currentTime: number, duration: number, error: string | null}>

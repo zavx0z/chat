@@ -1,5 +1,5 @@
 import type {JSX} from "@zavx0z/immersive-jsx-compiler-session"
-import type {HistoryViewport} from "../../contract"
+import type {HistoryViewport} from "../../contract/viewport"
 
 /** Локальный viewport ограниченной истории, независимый от транспорта и автора записей. */
 export declare namespace ChatHistoryView {

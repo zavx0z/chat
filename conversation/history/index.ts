@@ -5,9 +5,33 @@
 
 @packageDocumentation
 */
-import type {HistoryController, HistoryHeader, HistoryInput, HistoryBody, HistoryPage, HistoryEvidencePage, HistoryQuery, HistorySelection, HistoryViewport, HistoryResidencyBudget} from "./contract"
+import type {HistoryController} from "./contract/controller"
+import type {HistoryHeader} from "./contract/header"
+import type {HistoryInput} from "./contract/options"
+import type {HistoryBody} from "./contract/body"
+import type {HistoryPage} from "./contract/page"
+import type {HistoryEvidencePage} from "./contract/evidence-page"
+import type {HistoryQuery} from "./contract/query"
+import type {HistorySelection} from "./contract/selection"
+import type {HistoryViewport} from "./contract/viewport"
+import type {HistoryResidencyBudget} from "./contract/residency-budget"
 
-export type {HistoryController, HistoryHeader, HistoryInput, HistoryBody, HistoryPage, HistoryEvidencePage, HistoryQuery, HistorySelection, HistorySummary, HistorySource, HistoryRow, HistoryView, HistoryViewport, HistoryResidencyBudget} from "./contract"
+export type {HistoryController} from "./contract/controller"
+export type {HistoryHeader} from "./contract/header"
+export type {HistoryInput} from "./contract/options"
+export type {HistoryBody} from "./contract/body"
+export type {HistoryPage} from "./contract/page"
+export type {HistoryEvidencePage} from "./contract/evidence-page"
+export type {HistoryQuery} from "./contract/query"
+export type {HistorySelection} from "./contract/selection"
+export type {HistorySummary} from "./contract/summary"
+export type {HistorySource} from "./contract/source"
+export type {HistoryRow} from "./contract/row"
+export type {HistoryView} from "./contract/view"
+export type {HistoryViewport} from "./contract/viewport"
+export type {HistoryResidencyBudget} from "./contract/residency-budget"
+
+export type {ChatConversationHistory} from "./contract"
 
 const CACHE_BYTES = 4 * 1024 * 1024
 const MAX_BODY_BYTES = 16 * 1024 * 1024

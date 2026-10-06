@@ -1,5 +1,7 @@
 import View from "../index"
-import type {HistoryView, HistoryHeader, HistoryViewport} from "../../contract"
+import type {HistoryView} from "../../contract/view"
+import type {HistoryHeader} from "../../contract/header"
+import type {HistoryViewport} from "../../contract/viewport"
 
 export type Body = Readonly<{height: number}>
 export type Props = Readonly<{
