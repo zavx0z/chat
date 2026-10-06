@@ -5,20 +5,61 @@
 
 @packageDocumentation
 */
-import type {HistoryController, HistoryHeader, HistoryInput, HistoryBody, HistoryPage, HistoryEvidencePage, HistoryQuery, HistorySelection, HistoryViewport} from "./contract"
+import type {HistoryController, HistoryHeader, HistoryInput, HistoryBody, HistoryPage, HistoryEvidencePage, HistoryQuery, HistorySelection, HistoryViewport, HistoryResidencyBudget} from "./contract"
 
-export type {HistoryController, HistoryHeader, HistoryInput, HistoryBody, HistoryPage, HistoryEvidencePage, HistoryQuery, HistorySelection, HistorySummary, HistorySource, HistoryRow, HistoryView, HistoryViewport} from "./contract"
+export type {HistoryController, HistoryHeader, HistoryInput, HistoryBody, HistoryPage, HistoryEvidencePage, HistoryQuery, HistorySelection, HistorySummary, HistorySource, HistoryRow, HistoryView, HistoryViewport, HistoryResidencyBudget} from "./contract"
 
 const CACHE_BYTES = 4 * 1024 * 1024
 const MAX_BODY_BYTES = 16 * 1024 * 1024
 const integer = (value: unknown): value is number => Number.isSafeInteger(value) && Number(value) >= 0
 
+/** Один бюджет для верхнего и вложенных окон: 4 MiB обычных данных и одно тело до 16 MiB суммарно. */
+export function createHistoryResidencyBudget(): HistoryResidencyBudget {
+  const entries = new Map<symbol, {regular: number; large: number; evict(): void}>()
+  const usage = () => {
+    let regularBytes = 0
+    let largeBytes = 0
+    let largeCount = 0
+    for (const entry of entries.values()) {regularBytes += entry.regular; largeBytes += entry.large; largeCount += Number(entry.large > 0)}
+    return {regularBytes, largeBytes, largeCount, entries: entries.size}
+  }
+  const release = (key: symbol) => {entries.delete(key)}
+  return {
+    usage, release,
+    reserve(key, bodyBytes, evidenceBytes, evict) {
+      if (![bodyBytes, evidenceBytes].every(bytes => integer(bytes) && bytes <= MAX_BODY_BYTES)) return false
+      const regular = (bodyBytes <= CACHE_BYTES ? bodyBytes : 0) + (evidenceBytes <= CACHE_BYTES ? evidenceBytes : 0)
+      const large = Math.max(bodyBytes > CACHE_BYTES ? bodyBytes : 0, evidenceBytes > CACHE_BYTES ? evidenceBytes : 0)
+      if (regular > CACHE_BYTES || bodyBytes > CACHE_BYTES && evidenceBytes > CACHE_BYTES) return false
+      entries.delete(key)
+      if (large > 0) for (const [other, entry] of [...entries]) {
+        if (entry.large === 0) continue
+        entries.delete(other)
+        entry.evict()
+      }
+      for (const [other, entry] of [...entries]) {
+        if (usage().regularBytes + regular <= CACHE_BYTES) break
+        if (entry.regular === 0) continue
+        entries.delete(other)
+        entry.evict()
+      }
+      entries.set(key, {regular, large, evict})
+      return true
+    },
+  }
+}
+
 /**
 Окно одной выбранной беседы, независимое от её авторов и backend. Заголовки ограничены тремя страницами,
 body/evidence единым byte budget. Visibility/collapse отзывает запрос и strong refs;
 поздний результат не может восстановить закрытую либо другую беседу.
+Если host создаёт вложенные окна, общий residencyBudget ограничивает сумму их
+сохранённых body/evidence; создание окна само не читает источник и не публикует состояние.
+Измеренная row.visible остаётся независимой от revision и загрузки тела.
 */
 export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence>(input: HistoryInput<Header, Body, Evidence>): HistoryController<Header, Body, Evidence> {
+  const pageSize = Math.max(1, Math.min(32, input.pageSize ?? 32))
+  const maxPages = Math.max(1, Math.min(3, input.maxPages ?? 3))
   type Page = HistoryPage<Header>
   type Stored = {body: HistoryBody<Body>, evidence?: HistoryEvidencePage<Evidence>, evidenceBytes: number, touched: number}
   let selected: HistorySelection | null = null
@@ -33,12 +74,14 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
   let pageAgain = false
   let pendingPage: {query: HistoryQuery; direction: "before" | "after" | "tail"} | undefined
   let error: string | undefined
+  let failedPage: {query: HistoryQuery, direction: "before" | "after" | "tail"} | undefined
   let clock = 0
   let viewportKey = ""
   let resumeOrdinal: number | undefined
   const visible = new Set<string>()
   const expanded = new Set<string>()
   const cache = new Map<string, Stored>()
+  const allocations = new Map<string, symbol>()
   const requests = new Map<string, AbortController>()
   const requestRevisions = new Map<string, number>()
   const failures = new Map<string, {message: string; revision: number}>()
@@ -46,7 +89,13 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
   const headers = () => [...new Map(pages.flatMap(page => page.items).map(item => [item.id, item])).values()].sort((a, b) => a.ordinal - b.ordinal)
   const needed = (id: string) => active && visible.has(id) && headers().some(header => header.id === id && (input.isOrdinary(header) || expanded.has(id)))
   const changed = () => {if (!disposed) input.changed()}
+  const releaseAllocation = (id: string) => {
+    const key = allocations.get(id)
+    if (key !== undefined) input.residencyBudget?.release(key)
+    allocations.delete(id)
+  }
   const cancelDetails = (id: string) => {
+    releaseAllocation(id)
     requests.get(id)?.abort()
     requests.delete(id)
     requestRevisions.delete(id)
@@ -61,10 +110,12 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
     pageRequest = null
     pageAgain = false
     pendingPage = undefined
+    failedPage = undefined
     for (const request of requests.values()) request.abort()
     requests.clear()
     requestRevisions.clear()
     pages = []
+    for (const id of allocations.keys()) releaseAllocation(id)
     cache.clear()
     visible.clear()
     expanded.clear()
@@ -94,7 +145,18 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
       cancelDetails(key)
       blocked.add(key)
     }
-    return total + incoming.regular <= CACHE_BYTES
+    if (total + incoming.regular > CACHE_BYTES) return false
+    if (input.residencyBudget !== undefined) {
+      const key = allocations.get(id) ?? Symbol(id)
+      const reserved = input.residencyBudget.reserve(key, evidence ? stored?.body.bytes ?? 0 : bytes, evidence ? bytes : 0, () => {
+        cancelDetails(id)
+        blocked.add(id)
+        changed()
+      })
+      if (!reserved) return false
+      allocations.set(id, key)
+    }
+    return true
   }
   const pump = () => {
     if (selected === null || !active || disposed) return
@@ -106,7 +168,6 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
     for (const header of headers()) {
       if (requests.size + Number(pageRequest !== null) >= 4) break
       if (!needed(header.id) || cache.has(header.id) || requests.has(header.id) || failures.has(header.id) || blocked.has(header.id)) continue
-      if (header.bodyBytes > MAX_BODY_BYTES) {failures.set(header.id, {message: "Запись превышает предел просмотра 16 MiB", revision: header.revision}); continue}
       const controller = new AbortController()
       const epoch = generation
       const chatId = selected.id
@@ -139,13 +200,14 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
     error = undefined
     changed()
     try {
-      const page = await input.source.readPage(chatId, {limit: 32, maxBytes: 65536, ...query}, controller.signal)
+      const page = await input.source.readPage(chatId, {limit: pageSize, maxBytes: 65536, ...query}, controller.signal)
       if (!valid(epoch, chatId) || controller.signal.aborted) return
-      if (!page || page.conversationId !== chatId || !integer(page.revision) || !integer(page.total) || !integer(page.start) || !Array.isArray(page.items) || page.items.length > 32 ||
+      if (!page || page.conversationId !== chatId || !integer(page.revision) || !integer(page.total) || !integer(page.start) || !Array.isArray(page.items) || page.items.length > pageSize ||
         page.items.some(header => !header || typeof header.id !== "string" || !integer(header.ordinal) || !integer(header.revision) || !integer(header.bodyBytes) || !integer(header.evidenceCount) || input.validateHeader?.(header) === false) ||
         new TextEncoder().encode(JSON.stringify(page.items)).byteLength > 65536) throw new Error("Некорректная страница истории")
+      failedPage = undefined
       pages = direction === "tail" ? [page] : [...pages.filter(existing => existing.start !== page.start), page].sort((a, b) => a.start - b.start)
-      if (pages.length > 3) pages = direction === "before" ? pages.slice(0, 3) : pages.slice(-3)
+      if (pages.length > maxPages) pages = direction === "before" ? pages.slice(0, maxPages) : pages.slice(-maxPages)
       // Та же геометрия после чтения страницы теперь соответствует доступным заголовкам.
       // Ранний viewport мог прийти, пока они ещё отсутствовали, и не запустить тела.
       viewportKey = ""
@@ -160,7 +222,7 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
       if (following) {readTotal = selected.history.total; readRevision = selected.history.revision}
       pump()
     } catch (failure) {
-      if (valid(epoch, chatId) && !controller.signal.aborted) error = failure instanceof Error ? failure.message : String(failure)
+      if (valid(epoch, chatId) && !controller.signal.aborted) {failedPage = {query, direction}; error = failure instanceof Error ? failure.message : String(failure)}
     } finally {
       if (pageRequest === controller) pageRequest = null
       if (valid(epoch, chatId)) {
@@ -173,7 +235,7 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
   return {
     getSnapshot() {
       return {conversationId: selected?.id ?? null, revision: selected?.history.revision ?? 0, total: selected?.history.total ?? 0,
-        rows: headers().map(header => ({header, body: cache.get(header.id)?.body.entry, evidence: cache.get(header.id)?.evidence,
+        rows: headers().map(header => ({header, visible: visible.has(header.id), body: cache.get(header.id)?.body.entry, evidence: cache.get(header.id)?.evidence,
           expanded: expanded.has(header.id), loading: requests.has(header.id), error: failures.get(header.id)?.message})),
         before: pages[0]?.before ?? null, after: pages.at(-1)?.after ?? null, unread: following ? 0 : Math.max(0, (selected?.history.total ?? 0) - readTotal, (selected?.history.revision ?? 0) > readRevision ? 1 : 0),
         following, loading: pageRequest !== null, error}
@@ -231,6 +293,7 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
       } else pump()
       changed()
     },
+    retryPage() {if (failedPage) void load(failedPage.query, failedPage.direction); else void load()},
     tail() {following = true; readTotal = selected?.history.total ?? 0; readRevision = selected?.history.revision ?? 0; void load()},
     async evidence(id: string, after?: number) {
       const stored = cache.get(id)

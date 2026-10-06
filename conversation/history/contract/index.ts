@@ -60,6 +60,8 @@ export type HistorySource<Header extends HistoryHeader, Body, Evidence> = Readon
 export type HistoryRow<Header extends HistoryHeader, Body, Evidence> = Readonly<{
   header: Header
   body?: Body | undefined
+  /** Измеренная видимость строки не зависит от revision её payload. */
+  visible?: boolean
   evidence?: HistoryEvidencePage<Evidence> | undefined
   expanded: boolean
   loading: boolean
@@ -90,6 +92,11 @@ export type HistoryInput<Header extends HistoryHeader, Body, Evidence> = Readonl
   isOrdinary(header: Header): boolean
   validateBody?(body: Body, header: Header): Body
   validateHeader?(header: Header): boolean
+  /** Один owner передаёт тот же budget всем своим окнам, чтобы лимит не умножался. */
+  residencyBudget?: HistoryResidencyBudget
+  /** Число заголовков одной страницы и resident страниц; малые вложенные окна используют тот же controller. */
+  pageSize?: number
+  maxPages?: number
   changed(): void
 }>
 
@@ -97,7 +104,9 @@ export type HistoryInput<Header extends HistoryHeader, Body, Evidence> = Readonl
 Окно содержит не больше трёх страниц по 32 заголовка, 4 MiB обычных bodies и
 evidence плюс одно большое содержимое до 16 MiB. Не больше четырёх запросов
 одновременно; скрытие, collapse и смена беседы abort-ят ненужное чтение.
-После eviction возвращение к записи снова читает источник.
+После eviction возвращение к записи снова читает источник. Общий residencyBudget
+применяет эти byte limits к сумме всех окон host, а не к каждому независимо.
+Лимиты относятся к сериализованному payload; это не оценка полного JS/GPU/RSS.
 */
 export type HistoryController<Header extends HistoryHeader, Body, Evidence> = Readonly<{
   getSnapshot(): HistoryView<Header, Body, Evidence>
@@ -106,7 +115,15 @@ export type HistoryController<Header extends HistoryHeader, Body, Evidence> = Re
   viewport(viewport: HistoryViewport): void
   expand(id: string, expanded: boolean): void
   retry(id: string): void
+  retryPage(): void
   tail(): void
   evidence(id: string, after?: number): Promise<void>
   dispose(): void
+}>
+
+/** Общий бюджет resident payload всех окон одного host, без привязки к протоколу чата. */
+export type HistoryResidencyBudget = Readonly<{
+  reserve(key: symbol, bodyBytes: number, evidenceBytes: number, evict: () => void): boolean
+  release(key: symbol): void
+  usage(): Readonly<{regularBytes: number; largeBytes: number; largeCount: number; entries: number}>
 }>

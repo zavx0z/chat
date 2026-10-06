@@ -18,6 +18,7 @@ export declare namespace ChatHistoryView {
     onViewport(value: HistoryViewport): void
     onVisible(value: boolean): void
     onTail(): void
+    onRetry?: (() => void) | undefined
     onRowHeights?(heights: ReadonlyMap<string, number>): void
   }>
   /** Содержимое текущего ограниченного окна в том же semantic Document. */
