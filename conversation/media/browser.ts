@@ -92,7 +92,7 @@ export async function filesToMedia(files: readonly File[], options: MediaReadOpt
       else {
         let text: string | undefined
         if (mimeType.startsWith("text/") || ["application/json", "application/xml"].includes(mimeType)) {
-          try { text = new TextDecoder("utf-8", {fatal: true}).decode(bytes) } catch {}
+          try { text = new TextDecoder("utf-8", {fatal: true, ignoreBOM: true}).decode(bytes) } catch {}
         }
         if (text !== undefined && textJsonBytes(text) + jsonBytes + 4096 <= MAX_JSON_BYTES) content = {...common, kind: "file", text}
         else content = {...common, kind: "file", data: base64(bytes)}
@@ -188,6 +188,10 @@ export type ImagePreparationHost = Readonly<{
 
 export type ImagePreparationOptions = Readonly<{
   source: Blob | MediaAttachment | string
+  /** Выполняется только после получения единственного image slot; ожидающие заявки не загружают originals. */
+  loader?: ((signal: AbortSignal) => Promise<Blob>) | undefined
+  /** Cache одного авторизованного host; variants используют stable source identity и transform parameters. */
+  cache?: MediaImageCache | undefined
   mode: "thumbnail" | "preview"
   maxEdge?: number
   /** Логический viewport с реальным DPR; обе стороны дополнительно ограничивают output. */
@@ -304,10 +308,160 @@ function imageLease(host: ImagePreparationHost, url: string, width: number, heig
   }}
 }
 
+/** Cache принадлежит одному media host/беседе. Ограничены именно encoded варианты, originals не сохраняются. */
+export type MediaImageCache = Readonly<{
+  get(key: string, host: ImagePreparationHost): PreparedMediaImage | null
+  put(key: string, source: string, blob: Blob, width: number, height: number, host: ImagePreparationHost, stamp?: object): PreparedMediaImage
+  stamp(source: string): object
+  clear(): void
+  invalidate(source: Blob | MediaAttachment | string): void
+  dispose(): void
+  inspect(): Readonly<{entries: number, bytes: number, activeLeases: number, retiredBytes: number, uncachedBytes: number}>
+}>
+type CachedImage = {
+  key: string
+  source: string
+  blob: Blob
+  width: number
+  height: number
+  references: number
+  retired: boolean
+  url?: string
+  urlHost?: ImagePreparationHost
+}
+const MAX_THUMBNAIL_CACHE_BYTES = 8 * 1024 * 1024
+const MAX_THUMBNAIL_CACHE_ENTRIES = 64
+const IMAGE_TRANSFORM_VERSION = "resample-webp-v1"
+
+function imageSourceIdentity(source: Blob | MediaAttachment | string): string | null {
+  if (typeof source === "string") {
+    const internal = /^\/__chat_media\/([a-f0-9]{64})$/u.exec(source)
+    return internal ? `chat-media:${internal[1]}` : source
+  }
+  if (source instanceof Blob || typeof source.id !== "string" || source.id.length > 512) return null
+  return `attachment:${source.id}:${source.mimeType}:${source.bytes}`
+}
+
+/**
+LRU удерживает не более 8 МиБ/64 encoded вариантов thumbnail/preview. Активный lease не выселяется:
+если все entries заняты, новый thumbnail выдаётся без retention. Эти текущие
+отображаемые leases учитываются отдельно в uncachedBytes, а invalidate/dispose
+не отзывают URL, ещё используемый другим видимым экземпляром.
+*/
+export function createMediaImageCache(): MediaImageCache {
+  const entries = new Map<string, CachedImage>()
+  const retired = new Set<CachedImage>()
+  let bytes = 0
+  let uncachedBytes = 0
+  let activeLeases = 0
+  let disposed = false
+  const generations = new Map<string, object>()
+  const stamp = (source: string): object => {
+    const token = generations.get(source) ?? {}
+    generations.delete(source)
+    generations.set(source, token)
+    while (generations.size > MAX_THUMBNAIL_CACHE_ENTRIES) generations.delete(generations.keys().next().value!)
+    return token
+  }
+  const revoke = (entry: CachedImage): void => {
+    if (entry.url !== undefined) entry.urlHost!.revokeUrl(entry.url)
+    delete entry.url
+    delete entry.urlHost
+  }
+  const remove = (entry: CachedImage): void => {
+    entries.delete(entry.key)
+    bytes -= entry.blob.size
+    entry.retired = true
+    if (entry.references === 0) revoke(entry)
+    else retired.add(entry)
+  }
+  const acquire = (entry: CachedImage, host: ImagePreparationHost): PreparedMediaImage => {
+    if (entry.url === undefined) {
+      entry.url = host.createUrl(entry.blob)
+      entry.urlHost = host
+    }
+    const url = entry.url
+    entry.references++
+    activeLeases++
+    let retained: CachedImage | undefined = entry
+    return {url, width: entry.width, height: entry.height, bytes: entry.blob.size, release() {
+      const current = retained
+      if (!current) return
+      retained = undefined
+      current.references--
+      activeLeases--
+      if (current.references === 0) {
+        revoke(current)
+        retired.delete(current)
+      }
+    }}
+  }
+  const uncached = (blob: Blob, width: number, height: number, host: ImagePreparationHost): PreparedMediaImage => {
+    const size = blob.size
+    const lease = imageLease(host, host.createUrl(blob), width, height, size)
+    uncachedBytes += size
+    activeLeases++
+    let released = false
+    return {...lease, release() {
+      if (released) return
+      released = true
+      uncachedBytes -= size
+      activeLeases--
+      lease.release()
+    }}
+  }
+  const clear = (): void => {
+    generations.clear()
+    for (const entry of [...entries.values()]) remove(entry)
+  }
+  return {
+    stamp,
+    clear,
+    get(key, host) {
+      if (disposed) return null
+      const entry = entries.get(key)
+      if (!entry) return null
+      entries.delete(key)
+      entries.set(key, entry)
+      return acquire(entry, host)
+    },
+    put(key, source, blob, width, height, host, expectedStamp) {
+      if (disposed || blob.size > MAX_THUMBNAIL_CACHE_BYTES) return uncached(blob, width, height, host)
+      const token = expectedStamp ?? stamp(source)
+      if (generations.get(source) !== token) return uncached(blob, width, height, host)
+      const existing = entries.get(key)
+      if (existing) return acquire(existing, host)
+      while (entries.size >= MAX_THUMBNAIL_CACHE_ENTRIES || bytes + blob.size > MAX_THUMBNAIL_CACHE_BYTES) {
+        const oldest = [...entries.values()].find(entry => entry.references === 0)
+        if (!oldest) return uncached(blob, width, height, host)
+        remove(oldest)
+      }
+      const entry: CachedImage = {key, source, blob, width, height, references: 0, retired: false}
+      entries.set(key, entry)
+      bytes += blob.size
+      return acquire(entry, host)
+    },
+    invalidate(source) {
+      const identity = imageSourceIdentity(source)
+      if (identity === null) return
+      generations.delete(identity)
+      for (const entry of [...entries.values()]) if (entry.source === identity) remove(entry)
+    },
+    dispose() {
+      if (disposed) return
+      disposed = true
+      clear()
+    },
+    inspect() {
+      return {entries: entries.size, bytes, activeLeases, retiredBytes: [...retired].reduce((sum, entry) => sum + entry.blob.size, 0), uncachedBytes}
+    },
+  }
+}
+
 /**
 Подготавливает bounded изображение штатными host API: thumbnail ≤512 px,
-fullscreen preview ≤2048 px. Одна декодирующая операция выполняется одновременно,
-ожидающие заявки ограничены. Transient OffscreenCanvas служит только resampling
+fullscreen preview ≤2048 px. Загрузка original и декодирование занимают один общий
+slot; ожидающие заявки не запускают loader и ограничены по количеству. Transient OffscreenCanvas служит только resampling
 и кодированию Blob; он не является presentation Canvas или вторым semantic UI.
 
 Bitmap и canvas освобождаются до выдачи URL lease. API ограничивает output pixels,
@@ -324,8 +478,15 @@ export async function prepareMediaImage(options: ImagePreparationOptions): Promi
   const dpr = viewport?.dpr ?? globalThis.devicePixelRatio ?? 1
   if (viewport !== undefined && (![viewport.width, viewport.height, dpr].every(value => Number.isFinite(value) && value > 0))) throw new TypeError("Нужны положительные размеры viewport и DPR")
   if (options.source instanceof Blob && options.source.size > MAX_IMAGE_SOURCE_BYTES) throw new Error("Источник изображения ограничен 16 МиБ")
-  if (typeof options.source === "string" && (options.source.length > 4096 || !options.source.startsWith("blob:"))) throw new Error("Нужен принадлежащий browser blob URL")
+  if (typeof options.source === "string" && (options.source.length > 4096 || !options.loader && !options.source.startsWith("blob:"))) throw new Error("Нужен принадлежащий browser blob URL")
   if (!(options.source instanceof Blob) && typeof options.source !== "string" && (typeof options.source.data !== "string" || options.source.data.length > MAX_IMAGE_SOURCE_BYTES || options.source.name.length > 512 || options.source.mimeType.length > 256)) throw new Error("Недопустимый источник изображения")
+  const identity = imageSourceIdentity(options.source)
+  const cache = identity !== null ? options.cache : undefined
+  const key = JSON.stringify([IMAGE_TRANSFORM_VERSION, identity, options.mode, edge, viewport?.width ?? null, viewport?.height ?? null, viewport ? dpr : null])
+  const preparationHost = options.host ?? nativeImageHost()
+  const cached = cache?.get(key, preparationHost)
+  if (cached) return cached
+  const generation = cache?.stamp(identity!)
   const releaseSlot = await imageSlot(options)
   if (releaseSlot === null) return null
   let bitmap: ImageBitmap | undefined
@@ -334,9 +495,15 @@ export async function prepareMediaImage(options: ImagePreparationOptions): Promi
   let host: ImagePreparationHost | undefined
   try {
     if (!imageCurrent(options)) return null
-    host = options.host ?? nativeImageHost()
-    const source = await imageSource(options, host)
+    host = preparationHost
+    // Другая заявка могла подготовить тот же source, пока эта ожидала slot.
+    const shared = cache?.get(key, host)
+    if (shared) return shared
+    const source = options.loader
+      ? await options.loader(options.signal ?? new AbortController().signal)
+      : await imageSource(options, host)
     if (source === null || !imageCurrent(options)) return null
+    if (!(source instanceof Blob) || source.size > MAX_IMAGE_SOURCE_BYTES) throw new Error("Источник изображения ограничен 16 МиБ")
     bitmap = await host.decode(source)
     if (!imageCurrent(options)) return null
     if (![bitmap.width, bitmap.height].every(value => Number.isSafeInteger(value) && value > 0)) throw new Error("Изображение имеет недопустимые размеры")
@@ -352,6 +519,7 @@ export async function prepareMediaImage(options: ImagePreparationOptions): Promi
     const blob = await canvas.convertToBlob({type: "image/webp", quality: options.mode === "thumbnail" ? 0.82 : 0.9})
     if (!imageCurrent(options)) return null
     if (blob.size > MAX_IMAGE_SOURCE_BYTES) throw new Error("Подготовленный preview ограничен 16 МиБ")
+    if (cache) return cache.put(key, identity!, blob, width, height, host, generation)
     url = host.createUrl(blob)
     const lease = imageLease(host, url, width, height, blob.size)
     url = undefined

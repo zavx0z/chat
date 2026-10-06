@@ -15,7 +15,9 @@
     "./user": "./user/contract/index.ts",
     "./message": "./conversation/message/contract/index.ts",
     "./header": "./conversation/header/index.tsx",
-    "./conversations": "./conversation/list/index.tsx"
+    "./conversations": "./conversation/list/index.tsx",
+    "./surface": "./conversation/view/index.tsx",
+    "./bubble": "./conversation/message/bubble/index.tsx"
   },
   "scripts": {
     "test": "bun test ./conversation",
@@ -32,7 +34,8 @@
     "@zavx0z/immersive-ui-component-button-basic": "^0.0.0",
     "@zavx0z/immersive-ui-component-button-icon": "^0.0.0",
     "@zavx0z/immersive-ui-component-field-text": "^0.0.0",
-    "@zavx0z/immersive-ui-component-view-code-editor": "^0.0.0"
+    "@zavx0z/immersive-ui-component-view-code-editor": "^0.0.0",
+    "@zavx0z/immersive-ui-component-field-slider": "^0.0.0"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
@@ -55,6 +58,7 @@
     "@zavx0z/immersive-jsx-compiler-bun": "link:@zavx0z/immersive-jsx-compiler-bun",
     "@zavx0z/immersive-template": "link:@zavx0z/immersive-template",
     "@zavx0z/immersive-ui-component-view-code-editor": "link:@zavx0z/immersive-ui-component-view-code-editor",
-    "@zavx0z/immersive-renderer-html": "link:@zavx0z/immersive-renderer-html"
+    "@zavx0z/immersive-renderer-html": "link:@zavx0z/immersive-renderer-html",
+    "@zavx0z/immersive-ui-component-field-slider": "link:@zavx0z/immersive-ui-component-field-slider"
   }
 }

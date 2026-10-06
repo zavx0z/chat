@@ -59,3 +59,14 @@ test("большой escaped text переходит в bounded blob без по
     expect(new TextEncoder().encode(JSON.stringify(media.map(item => item.attachment))).byteLength).toBeLessThanOrEqual(16 * 1024 * 1024)
   } finally { for (const item of media) item.release() }
 })
+
+test("текстовое вложение сохраняет BOM и original UTF-8 bytes при повторном кодировании", async () => {
+  const text = "\uFEFFТекст 🌍\r\n"
+  const original = new TextEncoder().encode(text)
+  const result = await filesToMedia([new File([original], "note.txt", {type: "text/plain"})], {})
+  try {
+    expect(result[0]!.attachment.text).toBe(text)
+    expect(new TextEncoder().encode(result[0]!.attachment.text)).toEqual(original)
+    expect(result[0]!.attachment.bytes).toBe(original.byteLength)
+  } finally {for (const item of result) item.release()}
+})

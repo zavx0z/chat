@@ -1,6 +1,6 @@
 import {expect, test} from "bun:test"
 import {createRoot} from "@zavx0z/immersive-component"
-import {createDocument, DataTransfer, DragEvent, releaseDataTransfer, type HTMLButtonElement} from "@zavx0z/immersive-dom"
+import {createDocument, ClipboardEvent, DataTransfer, DragEvent, releaseDataTransfer, type HTMLButtonElement} from "@zavx0z/immersive-dom"
 import {createDocumentRenderer} from "@zavx0z/immersive-renderer-html"
 import type {CompiledTemplate} from "@zavx0z/immersive-template/compiled"
 import Composer, {type ChatMessageComposer} from "../index"
@@ -41,11 +41,38 @@ test("IconButton вложения и файловый drop на textarea исп�
     expect(received).toEqual([[file]])
     expect(await received[0]![0]!.text()).toBe("Текст")
     expect(sent).toBe(0)
+    const paste = new ClipboardEvent("paste", {bubbles: true, cancelable: true, clipboardData: new DataTransfer({files: [file]})})
+    input.dispatchEvent(paste)
+    expect(paste.defaultPrevented).toBe(true)
+    expect(received).toEqual([[file], [file]])
     props = {...props, busy: true}
     render()
     const blocked = new DragEvent("drop", {bubbles: true, cancelable: true, dataTransfer: new DataTransfer({files: [file]})})
     host.querySelector("textarea")!.dispatchEvent(blocked)
     expect(blocked.defaultPrevented).toBe(true)
-    expect(received).toHaveLength(1)
+    expect(received).toHaveLength(2)
   } finally {root.unmount();renderer.dispose()}
+})
+
+test("draft во время ответа отправляется отдельной кнопкой, stop остаётся доступным", () => {
+  const document = createDocument()
+  const host = document.createElement("div")
+  document.append(host)
+  const root = createRoot(host)
+  let sent = 0
+  let stopped = 0
+  const props: ChatMessageComposer.Input = {draft: "Следующее сообщение", busy: false, canCancel: true, sendLabel: "Добавить в очередь",
+    onDraftChange() {}, onSend() {sent++}, onCancel() {stopped++}}
+  try {
+    root.render(Composer as unknown as CompiledTemplate<ChatMessageComposer.Input>, props)
+    root.flush()
+    const send = host.querySelector('button[aria-label="Добавить в очередь"]') as HTMLButtonElement
+    const stop = host.querySelector('button[aria-label="Остановить"]') as HTMLButtonElement
+    expect(send).not.toBeNull()
+    expect(stop).not.toBeNull()
+    send.click()
+    expect([sent, stopped]).toEqual([1, 0])
+    stop.click()
+    expect([sent, stopped]).toEqual([1, 1])
+  } finally {root.unmount()}
 })

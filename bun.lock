@@ -14,6 +14,7 @@
         "@zavx0z/immersive-ui-component": "^0.0.0",
         "@zavx0z/immersive-ui-component-button-basic": "^0.0.0",
         "@zavx0z/immersive-ui-component-button-icon": "^0.0.0",
+        "@zavx0z/immersive-ui-component-field-slider": "^0.0.0",
         "@zavx0z/immersive-ui-component-field-text": "^0.0.0",
         "@zavx0z/immersive-ui-component-view-code-editor": "^0.0.0",
       },
@@ -39,6 +40,7 @@
     "@zavx0z/immersive-ui-component": "link:@zavx0z/immersive-ui-component",
     "@zavx0z/immersive-ui-component-button-basic": "link:@zavx0z/immersive-ui-component-button-basic",
     "@zavx0z/immersive-ui-component-button-icon": "link:@zavx0z/immersive-ui-component-button-icon",
+    "@zavx0z/immersive-ui-component-field-slider": "link:@zavx0z/immersive-ui-component-field-slider",
     "@zavx0z/immersive-ui-component-field-text": "link:@zavx0z/immersive-ui-component-field-text",
     "@zavx0z/immersive-ui-component-view-code-editor": "link:@zavx0z/immersive-ui-component-view-code-editor",
   },
@@ -110,6 +112,8 @@
     "@zavx0z/immersive-ui-component-button-basic": ["@zavx0z/immersive-ui-component-button-basic@link:@zavx0z/immersive-ui-component-button-basic", {}],
 
     "@zavx0z/immersive-ui-component-button-icon": ["@zavx0z/immersive-ui-component-button-icon@link:@zavx0z/immersive-ui-component-button-icon", {}],
+
+    "@zavx0z/immersive-ui-component-field-slider": ["@zavx0z/immersive-ui-component-field-slider@link:@zavx0z/immersive-ui-component-field-slider", {}],
 
     "@zavx0z/immersive-ui-component-field-text": ["@zavx0z/immersive-ui-component-field-text@link:@zavx0z/immersive-ui-component-field-text", {}],
 

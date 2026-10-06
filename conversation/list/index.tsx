@@ -15,17 +15,19 @@ export default function ChatConversationList(props: Contract.Input) {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState("")
   const [page, setPage] = useState(0)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const located = useRef<string | undefined>(undefined)
   const alive = useRef(true)
   const working = useRef(false)
   useLayoutEffect(() => {alive.current = true; return () => {alive.current = false}}, [])
+  useLayoutEffect(() => {setPage(0); setEditingId(null); setConfirmingId(null)}, [props.trashOpen])
   useLayoutEffect(() => {
-    if (props.selectedId === undefined || located.current === props.selectedId) return
+    if (props.trashOpen || props.selectedId === undefined || located.current === props.selectedId) return
     const index = props.items.findIndex(item => item.id === props.selectedId)
     if (index < 0) return
     located.current = props.selectedId
     setPage(Math.floor(index / 32))
-  }, [props.selectedId, props.items])
+  }, [props.selectedId, props.items, props.trashOpen])
   const perform = async (action: () => void | Promise<void>) => {
     if (working.current || props.busy) return
     working.current = true
@@ -36,11 +38,14 @@ export default function ChatConversationList(props: Contract.Input) {
     finally {working.current = false; if (alive.current) setPending(false)}
   }
   const busy = props.busy === true || pending
-  const lastPage = Math.max(0, Math.ceil(props.items.length / 32) - 1)
+  const items = props.trashOpen ? props.deletedItems ?? [] : props.items
+  const lastPage = Math.max(0, Math.ceil(items.length / 32) - 1)
   const currentPage = Math.min(page, lastPage)
+  const activeItems = props.trashOpen ? [] : props.items.slice(currentPage * 32, currentPage * 32 + 32)
+  const trashItems = props.trashOpen ? (props.deletedItems ?? []).slice(currentPage * 32, currentPage * 32 + 32) : []
   return <section
     data-conversation-list=""
-    aria-label="Беседы"
+    aria-label={props.trashOpen ? "Корзина бесед" : "Беседы"}
     style={css`
       display: flex;
       flex-direction: column;
@@ -49,8 +54,26 @@ export default function ChatConversationList(props: Contract.Input) {
       gap: 4px;
     `}
   >
-    <Button label="Новая беседа" disabled={busy} onClick={() => {void perform(props.onCreate)}} />
-    {props.items.slice(currentPage * 32, currentPage * 32 + 32).map(item => <ConversationRow
+    {props.onTrashToggle ? <Button
+      label={props.trashOpen ? "Вернуться к беседам" : "Корзина"}
+      disabled={busy}
+      onClick={() => props.onTrashToggle?.(!props.trashOpen)}
+    /> : null}
+    {!props.trashOpen ? <Button label="Новая беседа" disabled={busy} onClick={() => {void perform(props.onCreate)}} /> : null}
+    {props.trashOpen && items.length === 0 && !busy ? <EmptyTrash /> : null}
+    {trashItems.map(item => <DeletedConversation
+      key={item.id}
+      id={item.id}
+      title={item.title}
+      recoverable={item.recoverable !== false}
+      busy={busy}
+      confirming={confirmingId === item.id}
+      onRestore={props.onRestore === undefined ? undefined : () => {void perform(() => props.onRestore?.(item.id))}}
+      onAskPurge={props.onPurge === undefined ? undefined : () => setConfirmingId(item.id)}
+      onCancel={() => setConfirmingId(null)}
+      onConfirm={() => {void perform(async () => {await props.onPurge?.(item.id); if (alive.current) setConfirmingId(null)})}}
+    />)}
+    {activeItems.map(item => <ConversationRow
       key={item.id}
       id={item.id}
       title={item.title}
@@ -120,7 +143,7 @@ function ConversationRow(props: Readonly<{
         `}
       />
       <IconButton label="Переименовать беседу" title="Переименовать беседу" iconSrc={editIcon} iconSize={14} disabled={props.busy} onClick={props.onEdit} />
-      <IconButton label="Удалить беседу" title="Удалить беседу" iconSrc={removeIcon} iconSize={14} disabled={props.busy} onClick={props.onDelete} />
+      <IconButton label="В корзину" title="Переместить беседу в корзину" iconSrc={removeIcon} iconSize={14} disabled={props.busy} onClick={props.onDelete} />
     </div>
     {props.editing ? <ConversationNameEditor
       id={props.id}
@@ -130,4 +153,73 @@ function ConversationRow(props: Readonly<{
       onCancel={props.onCancel}
     /> : null}
   </div>
+}
+
+/** Необратимое действие подтверждается здесь, без native dialog или скрытого выбора. */
+function DeletedConversation(props: Readonly<{
+  id: string, title: string, recoverable: boolean, busy: boolean, confirming: boolean,
+  onRestore: (() => void) | undefined, onAskPurge: (() => void) | undefined,
+  onCancel(): void, onConfirm(): void,
+}>) {
+  return <section
+    data-deleted-conversation={props.id}
+    style={css`
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      gap: 6px;
+      padding-block: 8px;
+    `}
+  >
+    <strong>{props.title}</strong>
+    {!props.recoverable ? <RecoveryNotice /> : null}
+    <Button
+      label="Восстановить"
+      disabled={props.busy || !props.recoverable || props.onRestore === undefined}
+      onClick={props.onRestore}
+    />
+    <Button
+      label="Удалить навсегда…"
+      disabled={props.busy || props.onAskPurge === undefined}
+      onClick={props.onAskPurge}
+    />
+    {props.confirming ? <PurgeConfirmation
+      title={props.title}
+      busy={props.busy}
+      onCancel={props.onCancel}
+      onConfirm={props.onConfirm}
+    /> : null}
+  </section>
+}
+
+
+function EmptyTrash() {return <p>Корзина пуста.</p>}
+function RecoveryNotice() {return <p>Восстановление недоступно. Можно завершить окончательное удаление.</p>}
+
+function PurgeConfirmation(props: Readonly<{title: string, busy: boolean, onCancel(): void, onConfirm(): void}>) {
+  return <section
+      role="alertdialog"
+      aria-label="Подтверждение окончательного удаления"
+      style={css`
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px;
+        border: 1px solid var(--widget-regular-outline);
+        border-radius: 6px;
+      `}
+    >
+      <p>Удалить «{props.title}» навсегда? Историю этой беседы восстановить не получится.</p>
+      <Button
+        label="Отмена"
+        disabled={props.busy}
+        onClick={props.onCancel}
+      />
+      <Button
+        label="Да, удалить навсегда"
+        tone="error"
+        disabled={props.busy}
+        onClick={props.onConfirm}
+      />
+    </section>
 }

@@ -61,7 +61,7 @@ test("универсальный список показывает имена и
     f.root.flush()
     void (f.host.querySelector('[data-conversation-id="travel"] button') as HTMLButtonElement).click()
     expect(selected).toEqual(["travel"])
-    void (f.host.querySelector('[data-conversation-id="travel"] button[aria-label="Удалить беседу"]') as HTMLButtonElement).click()
+    void (f.host.querySelector('[data-conversation-id="travel"] button[aria-label="В корзину"]') as HTMLButtonElement).click()
     await tick(f.root)
     expect(removed).toEqual(["travel"])
     const create = ([...f.host.querySelectorAll("button")] as HTMLButtonElement[]).find(button => button.textContent?.includes("Новая беседа"))!

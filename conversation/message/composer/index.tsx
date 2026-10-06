@@ -19,7 +19,9 @@ export default function ChatMessageComposer(props: Contract.Input) {
   const dragDepth = useRef(0)
   const fileDrag = (event: DragEvent) => props.onFiles !== undefined && event.dataTransfer?.types.includes("Files") === true
   const pending = props.canCancel === true
-  const canSend = !props.busy && (props.draft.trim().length > 0 || (props.attachments?.length ?? 0) > 0)
+  const hasDraft = props.draft.trim().length > 0 || (props.attachments?.length ?? 0) > 0
+  const canSend = !props.busy && props.sendDisabled !== true && hasDraft
+  const stopOnly = pending && !hasDraft
   return <div
     data-chat-composer=""
     data-file-drop={dragging && !props.busy ? "active" : undefined}
@@ -88,6 +90,12 @@ export default function ChatMessageComposer(props: Contract.Input) {
       }}
       onBlur={() => setFocused(false)}
       onInput={event => props.onDraftChange(event.currentTarget.value)}
+      onPaste={event => {
+        const files = Array.from(event.clipboardData?.files ?? [])
+        if (!props.onFiles || files.length === 0) return
+        event.preventDefault()
+        if (!props.busy) props.onFiles(files)
+      }}
       onKeyDown={event => {
         if (event.key !== "Enter" || event.shiftKey || event.isComposing || event.keyCode === 229) return
         event.preventDefault()
@@ -124,15 +132,28 @@ export default function ChatMessageComposer(props: Contract.Input) {
     >
       <slot />
       {props.onAttach ? <AttachButton onAttach={props.onAttach} busy={props.busy} /> : null}
+      {pending && hasDraft ? <IconButton
+        label="Остановить"
+        title="Остановить ответ"
+        iconSrc={stopIcon}
+        iconSize={18}
+        variant="text"
+        onClick={() => props.onCancel()}
+        style={css`
+          width: 32px;
+          height: 32px;
+          flex-shrink: 0;
+        `}
+      /> : null}
       <IconButton
-        label={pending ? "Остановить" : "Отправить"}
-        title={pending ? "Остановить ответ" : "Отправить сообщение (Enter)"}
-        iconSrc={pending ? stopIcon : sendIcon}
+        label={stopOnly ? "Остановить" : props.sendLabel ?? "Отправить"}
+        title={stopOnly ? "Остановить ответ" : `${props.sendLabel ?? "Отправить сообщение"} (Enter)`}
+        iconSrc={stopOnly ? stopIcon : sendIcon}
         iconSize={22}
         variant="contained"
-        disabled={!pending && !canSend}
+        disabled={!stopOnly && !canSend}
         onClick={() => {
-          if (pending) props.onCancel()
+          if (stopOnly) props.onCancel()
           else if (canSend) props.onSend()
         }}
         style={css`

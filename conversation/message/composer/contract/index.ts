@@ -6,7 +6,10 @@ export declare namespace ChatMessageComposer {
   type Input = Readonly<{
     draft: string
     busy: boolean
+    /** Отправка может ждать применения параметров, сохраняя доступными ввод и вложения. */
+    sendDisabled?: boolean | undefined
     canCancel?: boolean | undefined
+    sendLabel?: string | undefined
     attachments?: readonly MediaDraftAttachment[] | undefined
     onDraftChange(value: string): void
     onSend(): void

@@ -1,5 +1,5 @@
 import {expect, test} from "bun:test"
-import {prepareMediaImage, type ImagePreparationHost} from "../browser"
+import {createMediaImageCache, prepareMediaImage, type ImagePreparationHost} from "../browser"
 
 function fixture(width = 6000, height = 4000) {
   const decoded: Blob[] = []
@@ -142,4 +142,167 @@ test("ошибка кодирования закрывает bitmap/canvas и о
   const result = await prepareMediaImage({source, mode: "thumbnail", host: healthy.host})
   expect(result).not.toBeNull()
   result!.release()
+})
+
+
+test("loader не загружает originals до свободного slot, queued cancellation не вызывает IO", async () => {
+  const f = fixture()
+  const gate = f.hold()
+  const loaded: string[] = []
+  const abort = new AbortController()
+  const prepare = (id: string, signal?: AbortSignal) => prepareMediaImage({
+    source: `chat-media:${id}`, mode: "thumbnail", host: f.host, ...(signal ? {signal} : {}),
+    loader: async current => {current.throwIfAborted(); loaded.push(id); return source},
+  })
+  const first = prepare("first")
+  const cancelled = prepare("cancelled", abort.signal)
+  const last = prepare("last")
+  await Bun.sleep(0)
+  expect(loaded).toEqual(["first"])
+  abort.abort()
+  expect(await cancelled).toBeNull()
+  expect(loaded).toEqual(["first"])
+  gate.resolve()
+  const results = await Promise.all([first, last])
+  expect(loaded).toEqual(["first", "last"])
+  for (const image of results) image?.release()
+})
+
+test("слишком большой loader Blob отвергается до decoder и освобождает slot", async () => {
+  const f = fixture()
+  await expect(prepareMediaImage({source: "chat-media:large", mode: "thumbnail", host: f.host,
+    loader: async () => new Blob([new Uint8Array(16 * 1024 * 1024 + 1)]),
+  })).rejects.toThrow("16 МиБ")
+  expect(f.decoded).toHaveLength(0)
+  const next = await prepareMediaImage({source, mode: "thumbnail", host: f.host})
+  expect(next).not.toBeNull()
+  next?.release()
+})
+
+
+test("stable thumbnail повторно используется без original IO/decode, URL принадлежит всем active leases", async () => {
+  const f = fixture()
+  const cache = createMediaImageCache()
+  let loads = 0
+  const options = {source: "chat-media:stable", mode: "thumbnail" as const, host: f.host, cache,
+    loader: async () => {loads++; return source}}
+  const first = await prepareMediaImage(options)
+  const second = await prepareMediaImage(options)
+  expect(loads).toBe(1)
+  expect(f.decoded).toHaveLength(1)
+  expect(second!.url).toBe(first!.url)
+  first!.release()
+  expect(f.revoked).toHaveLength(0)
+  second!.release()
+  expect(f.revoked).toHaveLength(1)
+  const restored = await prepareMediaImage(options)
+  expect(loads).toBe(1)
+  expect(f.decoded).toHaveLength(1)
+  restored!.release()
+  cache.invalidate(options.source)
+  const retried = await prepareMediaImage(options)
+  expect(loads).toBe(2)
+  retried!.release()
+  cache.dispose()
+  expect(cache.inspect()).toMatchObject({entries: 0, bytes: 0, activeLeases: 0, retiredBytes: 0, uncachedBytes: 0})
+})
+
+test("thumbnail cache ограничен 64 entries/8MiB, eviction/dispose не отзывают URL активного reader", async () => {
+  const f = fixture()
+  const cache = createMediaImageCache()
+  for (let index = 0; index < 65; index++) {
+    const value = await prepareMediaImage({source: `chat-media:${index}`, mode: "thumbnail", host: f.host, cache, loader: async () => source})
+    value!.release()
+  }
+  expect(cache.inspect().entries).toBe(64)
+  cache.dispose()
+  const bounded = createMediaImageCache()
+  const big = new Blob([new Uint8Array(4 * 1024 * 1024)])
+  const a = bounded.put("a", "a", big, 512, 512, f.host)
+  const b = bounded.put("b", "b", big, 512, 512, f.host)
+  const c = bounded.put("c", "c", big, 512, 512, f.host)
+  expect(bounded.inspect()).toMatchObject({entries: 2, bytes: 8 * 1024 * 1024, uncachedBytes: 4 * 1024 * 1024})
+  bounded.dispose()
+  expect(f.revoked).not.toContain(a.url)
+  a.release()
+  b.release()
+  c.release()
+  expect(bounded.inspect()).toMatchObject({entries: 0, bytes: 0, activeLeases: 0, retiredBytes: 0, uncachedBytes: 0})
+})
+
+
+test("clear во время loader не возвращает cache retention, следующий visible request может кешироваться", async () => {
+  const f = fixture()
+  const cache = createMediaImageCache()
+  const gate = f.hold()
+  const options = {source: "chat-media:hidden", mode: "thumbnail" as const, host: f.host, cache, loader: async () => source}
+  const pending = prepareMediaImage(options)
+  await Bun.sleep(0)
+  cache.clear()
+  gate.resolve()
+  const active = await pending
+  expect(cache.inspect()).toMatchObject({entries: 0, bytes: 0, uncachedBytes: 2})
+  active!.release()
+  const visible = await prepareMediaImage(options)
+  expect(cache.inspect()).toMatchObject({entries: 1, bytes: 2})
+  visible!.release()
+  cache.dispose()
+})
+
+
+test("два queued reader одного source разделяют подготовленный вариант без второго loader", async () => {
+  const f = fixture()
+  const cache = createMediaImageCache()
+  const gate = f.hold()
+  let loads = 0
+  const options = {source: "chat-media:coalesced", mode: "thumbnail" as const, host: f.host, cache,
+    loader: async () => {loads++; return source}}
+  const first = prepareMediaImage(options)
+  const second = prepareMediaImage(options)
+  await Bun.sleep(0)
+  expect(loads).toBe(1)
+  gate.resolve()
+  const leases = await Promise.all([first, second])
+  expect(loads).toBe(1)
+  expect(f.decoded).toHaveLength(1)
+  expect(leases[0]!.url).toBe(leases[1]!.url)
+  cache.clear()
+  expect(f.revoked).toHaveLength(0)
+  leases[0]!.release()
+  expect(f.revoked).toHaveLength(0)
+  leases[1]!.release()
+  expect(f.revoked).toHaveLength(1)
+  expect(cache.inspect()).toMatchObject({activeLeases: 0, retiredBytes: 0})
+})
+
+test("variant identity различает mode, fullscreen viewport и DPR", async () => {
+  const f = fixture()
+  const cache = createMediaImageCache()
+  let loads = 0
+  const common = {source: "chat-media:geometry", host: f.host, cache, loader: async () => {loads++; return source}}
+  const thumbnail = await prepareMediaImage({...common, mode: "thumbnail"})
+  const preview = await prepareMediaImage({...common, mode: "preview", viewport: {width: 100, height: 100, dpr: 1}})
+  const retina = await prepareMediaImage({...common, mode: "preview", viewport: {width: 100, height: 100, dpr: 2}})
+  const same = await prepareMediaImage({...common, mode: "preview", viewport: {width: 100, height: 100, dpr: 2}})
+  expect(thumbnail).toMatchObject({width: 512, height: 341})
+  expect(preview).toMatchObject({width: 100, height: 66})
+  expect(retina).toMatchObject({width: 200, height: 133})
+  expect(same!.url).toBe(retina!.url)
+  expect(loads).toBe(3)
+  for (const lease of [thumbnail, preview, retina, same]) lease!.release()
+  cache.dispose()
+})
+
+test("retry одного source не запрещает cache retention другой текущей загрузки", async () => {
+  const f = fixture()
+  const cache = createMediaImageCache()
+  const gate = f.hold()
+  const pending = prepareMediaImage({source: "chat-media:active", mode: "thumbnail", host: f.host, cache, loader: async () => source})
+  await Bun.sleep(0)
+  cache.invalidate("chat-media:unrelated")
+  gate.resolve()
+  const image = await pending
+  expect(cache.inspect()).toMatchObject({entries: 1, bytes: 2})
+  image!.release()
+  cache.dispose()
 })
