@@ -37,3 +37,22 @@ test("верхнее и вложенные окна делят один 4MiB + �
   } finally {for (const window of windows) window.dispose()}
   expect(budget.usage()).toEqual({regularBytes: 0, largeBytes: 0, largeCount: 0, entries: 0})
 })
+
+test("тяжёлые раскрытия вытесняют другие подробности, сохраняя малую страницу в том же бюджете", () => {
+  const budget = createHistoryResidencyBudget()
+  const page = Symbol("page")
+  const first = Symbol("first-details")
+  const second = Symbol("second-details")
+  const evicted: string[] = []
+  expect(budget.reserve(page, 64 * 1024, 0, () => evicted.push("page"), true)).toBeTrue()
+  expect(budget.reserve(first, 3 * 1024 * 1024, 0, () => evicted.push("first"))).toBeTrue()
+  expect(budget.reserve(second, 3 * 1024 * 1024, 0, () => evicted.push("second"))).toBeTrue()
+  expect(evicted).toEqual(["first"])
+  expect(budget.usage().regularBytes).toBe(64 * 1024 + 3 * 1024 * 1024)
+  expect(budget.reserve(Symbol(), 4 * 1024 * 1024, 0, () => {})).toBeFalse()
+  expect(evicted).toEqual(["first"])
+  expect(budget.usage().entries).toBe(2)
+  budget.release(page)
+  budget.release(second)
+  expect(budget.usage().regularBytes).toBe(0)
+})

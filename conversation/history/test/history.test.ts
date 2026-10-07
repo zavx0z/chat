@@ -50,7 +50,7 @@ function fixture(count = 192, textBytes = 32) {
     viewport(ids: string[], direction: "before" | "after" | "none" = "none", following = false) {window.viewport({ids, nearStart: direction === "before", nearEnd: direction === "after", following})}}
 }
 
-test("глубокая история держит не более трёх смежных страниц, показывает только visible bodies; eviction требует нового чтения", async () => {
+test("глубокая история держит не более трёх смежных страниц, сохраняет загруженные малые тела; eviction требует нового чтения", async () => {
   const f = fixture()
   f.accept()
   await tick()
@@ -320,7 +320,7 @@ test("неизменный snapshot стабилен; возврат к мало
     expect(f.window.getSnapshot()).toBe(first)
     for (let i = 0; i < 10; i++) {
       f.viewport([])
-      expect(f.window.getSnapshot().rows.find(row => row.header.id === "m160")?.body).toBeUndefined()
+      expect(f.window.getSnapshot().rows.find(row => row.header.id === "m160")?.body).toBe(first.rows.find(row => row.header.id === "m160")?.body)
       f.viewport(["m160"])
       await tick()
       expect(f.window.getSnapshot().rows.find(row => row.header.id === "m160")?.body).toBeDefined()

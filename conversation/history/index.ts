@@ -35,12 +35,13 @@ export type {HistoryResidencyBudget} from "./contract/residency-budget"
 export type {ChatConversationHistory} from "./contract"
 
 const CACHE_BYTES = 4 * 1024 * 1024
+const SMALL_BODY_BYTES = 128 * 1024
 const MAX_BODY_BYTES = 16 * 1024 * 1024
 const integer = (value: unknown): value is number => Number.isSafeInteger(value) && Number(value) >= 0
 
 /** Один бюджет для верхнего и вложенных окон: 4 MiB обычных данных и одно тело до 16 MiB суммарно. */
 export function createHistoryResidencyBudget(): HistoryResidencyBudget {
-  const entries = new Map<symbol, {regular: number; large: number; evict(): void}>()
+  const entries = new Map<symbol, {regular: number; large: number; retained: boolean; evict(): void}>()
   const usage = () => {
     let regularBytes = 0
     let largeBytes = 0
@@ -51,24 +52,28 @@ export function createHistoryResidencyBudget(): HistoryResidencyBudget {
   const release = (key: symbol) => {entries.delete(key)}
   return {
     usage, release,
-    reserve(key, bodyBytes, evidenceBytes, evict) {
+    reserve(key, bodyBytes, evidenceBytes, evict, retained = false) {
       if (![bodyBytes, evidenceBytes].every(bytes => integer(bytes) && bytes <= MAX_BODY_BYTES)) return false
       const regular = (bodyBytes <= CACHE_BYTES ? bodyBytes : 0) + (evidenceBytes <= CACHE_BYTES ? evidenceBytes : 0)
       const large = Math.max(bodyBytes > CACHE_BYTES ? bodyBytes : 0, evidenceBytes > CACHE_BYTES ? evidenceBytes : 0)
       if (regular > CACHE_BYTES || bodyBytes > CACHE_BYTES && evidenceBytes > CACHE_BYTES) return false
+      const candidates = [...entries].filter(([other, entry]) => other !== key && (retained || !entry.retained))
+        .sort((a, b) => Number(a[1].retained) - Number(b[1].retained))
+      const occupied = usage().regularBytes - (entries.get(key)?.regular ?? 0)
+      if (occupied + regular - candidates.reduce((sum, [, entry]) => sum + entry.regular, 0) > CACHE_BYTES) return false
       entries.delete(key)
       if (large > 0) for (const [other, entry] of [...entries]) {
         if (entry.large === 0) continue
         entries.delete(other)
         entry.evict()
       }
-      for (const [other, entry] of [...entries]) {
+      for (const [other, entry] of candidates) {
         if (usage().regularBytes + regular <= CACHE_BYTES) break
-        if (entry.regular === 0) continue
+        if (entry.regular === 0 || !entries.has(other)) continue
         entries.delete(other)
         entry.evict()
       }
-      entries.set(key, {regular, large, evict})
+      entries.set(key, {regular, large, retained, evict})
       return true
     },
   }
@@ -81,12 +86,12 @@ body/evidence единым byte budget. Visibility/collapse отзывает з�
 поздний результат не может восстановить закрытую либо другую беседу.
 Если host создаёт вложенные окна, общий residencyBudget ограничивает сумму их
 сохранённых body/evidence; создание окна само не читает источник и не публикует состояние.
-Измеренная row.visible остаётся независимой от revision и загрузки тела.
+Попадание строки в viewport управляет чтением подробностей, но не существованием малого сообщения.
 */
 export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence>(input: HistoryInput<Header, Body, Evidence>): HistoryController<Header, Body, Evidence> {
   const pageSize = Math.max(1, Math.min(32, input.pageSize ?? 32))
   const maxPages = Math.max(1, Math.min(3, input.maxPages ?? 3))
-  type Page = HistoryPage<Header>
+  type Page = HistoryPage<Header, Body>
   type Stored = {body: HistoryBody<Body>, evidence?: HistoryEvidencePage<Evidence>, evidenceBytes: number, touched: number}
   let selected: HistorySelection | null = null
   let active = true
@@ -95,6 +100,7 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
   let following = true
   let readTotal = 0
   let readRevision = 0
+  let loadedRevision = 0
   let pages: Page[] = []
   let pageRequest: AbortController | null = null
   let pageAgain = false
@@ -131,6 +137,7 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
   let headerPages: Page[] | undefined
   let headerCache: Header[] = []
   let snapshot: HistoryView<Header, Body, Evidence> | undefined
+  let rowSnapshot: HistoryView<Header, Body, Evidence>["rows"] = []
   const invalidateSnapshot = () => {snapshot = undefined}
   const headers = () => {
     if (headerPages !== pages) {
@@ -138,6 +145,11 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
       headerCache = [...new Map(pages.flatMap(page => page.items).map(item => [item.id, item])).values()].sort((a, b) => a.ordinal - b.ordinal)
     }
     return headerCache
+  }
+  const retained = (id: string) => {
+    const stored = cache.get(id)
+    const header = headers().find(value => value.id === id)
+    return stored !== undefined && stored.body.bytes <= SMALL_BODY_BYTES && header !== undefined && input.isOrdinary(header)
   }
   const needed = (id: string) => active && visible.has(id) && headers().some(header => header.id === id && (input.isOrdinary(header) || expanded.has(id)))
   const changed = () => {snapshot = undefined; if (!disposed) input.changed()}
@@ -149,9 +161,14 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
   const cancelDetails = (id: string, retainSmallBody = false) => {
     const stored = cache.get(id)
     const header = headers().find(item => item.id === id)
-    const retain = retainSmallBody && stored !== undefined && stored.body.bytes <= 131072 && stored.evidence === undefined &&
-      header !== undefined && input.isOrdinary(header) && stored.body.revision === header.revision
+    const retain = retainSmallBody && stored !== undefined && stored.body.bytes <= SMALL_BODY_BYTES &&
+      header !== undefined && input.isOrdinary(header)
     if (!retain) releaseAllocation(id)
+    else if (stored?.evidence !== undefined) {
+      releaseAllocation(id)
+      cache.set(id, {body: stored.body, evidenceBytes: 0, touched: stored.touched})
+      makeRoom(id, stored.body.bytes)
+    }
     requests.get(id)?.abort()
     requests.delete(id)
     requestRevisions.delete(id)
@@ -161,9 +178,11 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
   }
   const release = () => {
     snapshot = undefined
+    rowSnapshot = []
     clearTimeout(refreshTimer)
     refreshTimer = undefined
     generation++
+    loadedRevision = 0
     viewportKey = ""
     pageRequest?.abort()
     pageRequest = null
@@ -181,6 +200,12 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
     failures.clear()
     blocked.clear()
     error = undefined
+  }
+  const acknowledgeTail = () => {
+    const tail = pages.at(-1)
+    if (!tail || tail.after !== null) return
+    readTotal = tail.total
+    readRevision = tail.revision
   }
   const valid = (epoch: number, chatId: string) => !disposed && active && epoch === generation && selected?.id === chatId
   const trim = () => {
@@ -211,7 +236,7 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
         cancelDetails(id)
         blocked.add(id)
         changed()
-      })
+      }, !evidence && bytes <= SMALL_BODY_BYTES && headers().some(header => header.id === id && input.isOrdinary(header)))
       if (!reserved) return false
       allocations.set(id, key)
     }
@@ -226,7 +251,7 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
     }
     for (const header of headers()) {
       if (requests.size + Number(pageRequest !== null) >= 4) break
-      if (!needed(header.id) || cache.has(header.id) || requests.has(header.id) || failures.has(header.id) || blocked.has(header.id)) continue
+      if (!needed(header.id) || cache.get(header.id)?.body.revision === header.revision || requests.has(header.id) || failures.has(header.id) || blocked.has(header.id)) continue
       const controller = new AbortController()
       const epoch = generation
       const chatId = selected.id
@@ -235,8 +260,15 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
       void input.source.readBody(chatId, header.id, controller.signal).then(value => {
         if (!valid(epoch, chatId) || controller.signal.aborted || requests.get(header.id) !== controller || !needed(header.id)) return
         const body = value
-        if (!body || body.conversationId !== chatId || body.id !== header.id || !integer(body.revision) || !integer(body.bytes) || body.bytes > MAX_BODY_BYTES ||
-          body.revision !== headers().find(item => item.id === header.id)?.revision) throw new Error("Устаревшее или некорректное тело истории")
+        if (!body || body.conversationId !== chatId || body.id !== header.id || !integer(body.revision) || !integer(body.bytes) || body.bytes > MAX_BODY_BYTES) throw new Error("Некорректное тело истории")
+        const current = headers().find(item => item.id === header.id)
+        if (!current || body.revision < current.revision) throw new Error("Устаревшее тело истории")
+        if (body.revision > current.revision) {
+          // Запись успела обновиться между чтением заголовка и тела. Identity та же,
+          // более новая подтверждённая версия допустима без ошибки и пустого сообщения.
+          pages = pages.map(page => ({...page, items: page.items.map(item => item.id === header.id
+            ? {...item, revision: body.revision, bodyBytes: body.bytes, evidenceCount: body.evidenceCount} : item)}))
+        }
         const entry = input.validateBody?.(body.entry, header) ?? body.entry
         if (makeRoom(header.id, body.bytes)) cache.set(header.id, {body: {...body, entry}, evidenceBytes: 0, touched: ++clock})
         else blocked.add(header.id)
@@ -264,9 +296,49 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
       if (!page || page.conversationId !== chatId || !integer(page.revision) || !integer(page.total) || !integer(page.start) || !Array.isArray(page.items) || page.items.length > pageSize ||
         page.items.some(header => !header || typeof header.id !== "string" || !integer(header.ordinal) || !integer(header.revision) || !integer(header.bodyBytes) || !integer(header.evidenceCount) || input.validateHeader?.(header) === false) ||
         new TextEncoder().encode(JSON.stringify(page.items)).byteLength > 65536) throw new Error("Некорректная страница истории")
+      if (page.revision < loadedRevision) return
+      const inline = page.bodies ?? []
+      if (!Array.isArray(inline) || inline.length > page.items.length || inline.some(body => !body || typeof body !== "object") ||
+        new Set(inline.map(body => body.id)).size !== inline.length ||
+        new TextEncoder().encode(JSON.stringify(inline)).byteLength > SMALL_BODY_BYTES) throw new Error("Некорректные тела страницы истории")
+      const bodies = inline.map(body => {
+        const header = page.items.find(item => item.id === body.id)
+        if (!header || !input.isOrdinary(header) || body.conversationId !== chatId || body.revision !== header.revision ||
+          !integer(body.bytes) || body.bytes > SMALL_BODY_BYTES) throw new Error("Тело страницы не соответствует заголовку")
+        return {...body, entry: input.validateBody?.(body.entry, header) ?? body.entry}
+      })
+      loadedRevision = page.revision
       failedPage = undefined
-      pages = direction === "tail" ? [page] : [...pages.filter(existing => existing.start !== page.start), page].sort((a, b) => a.start - b.start)
-      if (pages.length > maxPages) pages = direction === "before" ? pages.slice(0, maxPages) : pages.slice(-maxPages)
+      // Страницы — ограниченные блоки данных, а не жизнь отдельных пикселей.
+      // Потоковый хвост сдвигает границу блока, сохраняя соседние сообщения.
+      const end = page.items.at(-1)?.ordinal ?? page.start
+      const earlier = page.before === null ? [] : headers().filter(item => item.ordinal < page.start)
+      const later = page.after === null ? [] : headers().filter(item => item.ordinal > end)
+      const versions = new Map(pages.flatMap(existing => existing.items.map(header => [header.id,
+        {revision: existing.revision, total: existing.total}] as const)))
+      for (const header of page.items) versions.set(header.id, {revision: page.revision, total: page.total})
+      const previousHeaders = new Map(headers().map(header => [header.id, header]))
+      const incoming = page.items.map(header => {
+        const previous = previousHeaders.get(header.id)
+        if (previous && previous.revision > header.revision) return previous
+        return previous && Object.keys(header).length === Object.keys(previous).length &&
+          Object.keys(header).every(key => header[key as keyof Header] === previous[key as keyof Header]) ? previous : header
+      })
+      const combined = [...earlier, ...incoming, ...later]
+      const limit = pageSize * maxPages
+      const items = direction === "before" ? combined.slice(0, limit) : combined.slice(-limit)
+      const before = items[0]?.id !== combined[0]?.id || (earlier.length > 0 ? pages[0]?.before != null : page.before !== null)
+      const after = items.at(-1)?.id !== combined.at(-1)?.id || (later.length > 0 ? pages.at(-1)?.after != null : page.after !== null)
+      pages = []
+      for (let offset = 0; offset < items.length; offset += pageSize) {
+        const chunk = items.slice(offset, offset + pageSize)
+        pages.push({conversationId: chatId,
+          revision: Math.min(...chunk.map(header => versions.get(header.id)!.revision)),
+          total: versions.get(chunk.at(-1)!.id)!.total,
+          start: chunk[0]!.ordinal, items: chunk,
+          before: offset > 0 || before ? chunk[0]!.ordinal : null,
+          after: offset + chunk.length < items.length || after ? chunk.at(-1)!.ordinal : null})
+      }
       // Та же геометрия после чтения страницы теперь соответствует доступным заголовкам.
       // Ранний viewport мог прийти, пока они ещё отсутствовали, и не запустить тела.
       viewportKey = ""
@@ -275,10 +347,18 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
       for (const id of visible) if (!current.has(id)) {visible.delete(id); cancelDetails(id)}
       for (const [id, failure] of failures) if (current.get(id)?.revision !== failure.revision) cancelDetails(id)
       for (const id of blocked) if (!current.has(id)) blocked.delete(id)
-      for (const [id, stored] of cache) if (current.get(id)?.revision !== stored.body.revision) cancelDetails(id)
-      for (const [id] of requests) if (current.get(id)?.revision !== requestRevisions.get(id)) cancelDetails(id)
+      for (const [id, stored] of cache) if (!current.has(id) || current.get(id)?.revision !== stored.body.revision && !retained(id)) cancelDetails(id)
+      for (const [id, request] of requests) if (current.get(id)?.revision !== requestRevisions.get(id)) {
+        request.abort()
+        requests.delete(id)
+        requestRevisions.delete(id)
+      }
+      for (const body of bodies) {
+        if ((cache.get(body.id)?.body.revision ?? -1) >= body.revision) continue
+        if (makeRoom(body.id, body.bytes)) cache.set(body.id, {body, evidenceBytes: 0, touched: ++clock})
+      }
       trim()
-      if (following) {readTotal = selected.history.total; readRevision = selected.history.revision}
+      if (following) acknowledgeTail()
       pump()
     } catch (failure) {
       if (valid(epoch, chatId) && !controller.signal.aborted) {failedPage = {query, direction}; error = failure instanceof Error ? failure.message : String(failure)}
@@ -293,9 +373,19 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
   }
   return {
     getSnapshot() {
-      return snapshot ??= {conversationId: selected?.id ?? null, revision: selected?.history.revision ?? 0, total: selected?.history.total ?? 0,
-        rows: headers().map(header => ({header, visible: visible.has(header.id), body: needed(header.id) ? cache.get(header.id)?.body.entry : undefined, evidence: needed(header.id) ? cache.get(header.id)?.evidence : undefined,
-          expanded: expanded.has(header.id), loading: requests.has(header.id), error: failures.get(header.id)?.message})),
+      if (snapshot !== undefined) return snapshot
+      const previous = new Map(rowSnapshot.map(row => [row.header.id, row]))
+      const rows = headers().map(header => {
+        const row = {header, body: retained(header.id) || needed(header.id) ? cache.get(header.id)?.body.entry : undefined,
+          evidence: needed(header.id) ? cache.get(header.id)?.evidence : undefined,
+          expanded: expanded.has(header.id), loading: requests.has(header.id), error: failures.get(header.id)?.message ?? (blocked.has(header.id) ? "Закройте другие подробности и повторите загрузку" : undefined)}
+        const old = previous.get(header.id)
+        return old && old.header === row.header && old.body === row.body && old.evidence === row.evidence &&
+          old.expanded === row.expanded && old.loading === row.loading && old.error === row.error ? old : row
+      })
+      if (rows.length !== rowSnapshot.length || rows.some((row, index) => row !== rowSnapshot[index])) rowSnapshot = rows
+      return snapshot = {conversationId: selected?.id ?? null, revision: selected?.history.revision ?? 0, total: selected?.history.total ?? 0,
+        rows: rowSnapshot,
         before: pages[0]?.before ?? null, after: pages.at(-1)?.after ?? null, unread: following ? 0 : Math.max(0, (selected?.history.total ?? 0) - readTotal, (selected?.history.revision ?? 0) > readRevision ? 1 : 0),
         following, loading: pageRequest !== null, error}
     },
@@ -305,7 +395,7 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
       invalidateSnapshot()
       const previous = selected
       const reset = previous === null || previous.id !== snapshot.id || previous.scope !== snapshot.scope
-      if (reset) {release(); resumeOrdinal = undefined; following = true; readTotal = snapshot.history.total; readRevision = snapshot.history.revision}
+      if (reset) {release(); resumeOrdinal = undefined; following = true; readTotal = 0; readRevision = 0}
       selected = snapshot
       if (snapshot.history.total === 0) {pages = []; trim(); return}
       if (active && reset) void load()
@@ -325,6 +415,9 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
       viewportKey = key
       resumeOrdinal = headers().find(header => viewport.ids.includes(header.id))?.ordinal ?? resumeOrdinal
       const previous = new Set(visible)
+      const wasFollowing = following
+      const previousRequests = requests.size
+      const previousCache = new Map(cache)
       visible.clear()
       const available = new Set(headers().map(header => header.id))
       for (const id of viewport.ids) if (available.has(id)) visible.add(id)
@@ -335,12 +428,17 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
         if (stored) stored.touched = ++clock
       }
       following = viewport.following
-      if (following) {readTotal = selected?.history.total ?? 0; readRevision = selected?.history.revision ?? 0}
+      if (following) {
+        acknowledgeTail()
+        if (selected && readRevision < selected.history.revision && pageRequest === null && refreshTimer === undefined) refreshTail()
+      }
       trim()
       pump()
       if (viewport.nearStart && pages[0]?.before != null) void load({before: pages[0].before}, "before")
       else if (viewport.nearEnd && pages.at(-1)?.after != null) void load({after: pages.at(-1)!.after!}, "after")
-      changed()
+      // Обычная прокрутка готовой страницы не публикует новый UI snapshot.
+      if (wasFollowing !== following || previousRequests !== requests.size || previousCache.size !== cache.size ||
+        [...previousCache].some(([id, stored]) => cache.get(id) !== stored)) changed()
     },
     expand(id: string, value: boolean) {
       if (!headers().some(header => header.id === id)) return
@@ -361,7 +459,7 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
       changed()
     },
     retryPage() {if (failedPage) void load(failedPage.query, failedPage.direction); else void load()},
-    tail() {following = true; readTotal = selected?.history.total ?? 0; readRevision = selected?.history.revision ?? 0; void load()},
+    tail() {following = true; acknowledgeTail(); void load()},
     async evidence(id: string, after?: number) {
       const stored = cache.get(id)
       if (!stored || selected === null || !needed(id) || requests.has(id) || requests.size + Number(pageRequest !== null) >= 4) return

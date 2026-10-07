@@ -2,8 +2,9 @@
 import Button from "@zavx0z/immersive-ui-component-button-basic"
 import {useLayoutEffect, useRef} from "@zavx0z/immersive-component"
 import {observeElementLayout} from "@zavx0z/immersive-dom"
-import {captureHistoryAnchor, type HistoryAnchor} from "./src/history-anchor"
+import type {HistoryAnchor} from "./src/history-anchor"
 import type {ChatHistoryView as Contract} from "./contract"
+import type {HistoryViewport} from "../contract/viewport"
 export type {ChatHistoryView} from "./contract"
 
 export default function ChatHistoryView(props: Contract.Input) {
@@ -14,6 +15,24 @@ export default function ChatHistoryView(props: Contract.Input) {
   const identity = props.identity
   const previous = useRef(identity)
   const measuring = useRef(false)
+  const scheduled = useRef<{freshLayout: boolean} | null>(null)
+  const publishedViewport = useRef<HistoryViewport | null>(null)
+  const currentMeasure = useRef<(freshLayout?: boolean) => void>(() => {})
+  const scheduleMeasure = (freshLayout = false): void => {
+    if (scheduled.current) {
+      scheduled.current.freshLayout ||= freshLayout
+      return
+    }
+    const pending = {freshLayout}
+    scheduled.current = pending
+    // Все observers одного прохода уже получили рамки. Объединяем их callbacks,
+    // чтобы число чтений строк зависело от окна, а не от количества observers.
+    queueMicrotask(() => {
+      if (scheduled.current !== pending) return
+      scheduled.current = null
+      currentMeasure.current(pending.freshLayout)
+    })
+  }
   const followingIntent = useRef(props.history.following)
   const acknowledgedFollowing = useRef(props.history.following)
   const userScrollEpoch = useRef(0)
@@ -70,6 +89,9 @@ export default function ChatHistoryView(props: Contract.Input) {
   // Только input означает намерение пользователя. Layout clamp после unload тоже
   // выдаёт scroll, но не должен создавать epoch, ожидающий ещё одного кадра.
   const writeOwnedScroll = (viewport: HTMLElement, top: number): boolean => {
+    // scrollTop нормализует отрицательное смещение в ноль. Если короткая
+    // страница уже помещается, измерение продолжается без ожидания callback.
+    top = Math.max(0, top)
     if (Math.abs(viewport.scrollTop - top) <= 0.5 || ownedScrollTop.current !== null && Math.abs(ownedScrollTop.current - top) <= 0.5) return false
     writingScroll.current = true
     ownedScrollTop.current = top
@@ -85,6 +107,9 @@ export default function ChatHistoryView(props: Contract.Input) {
       const box = viewport.getLayoutRect()
       props.onVisible(box !== null && box.height > 0 && box.width > 0)
       if (!box || box.height <= 0 || props.history.rows.length === 0 && props.history.total > 0) {
+        // После освобождения controller очищает visibility. Новое окно получает
+        // видимый диапазон повторно, даже если его ids совпадают с прежними.
+        publishedViewport.current = null
         // Освобождённое окно больше не имеет прежнего scroll range. Не оставляем
         // requested offset от 96 строк на пустом/вновь загруженном окне из 32.
         // Смысловая позиция остаётся в anchor; controller сохраняет ordinal.
@@ -96,6 +121,7 @@ export default function ChatHistoryView(props: Contract.Input) {
       if (previous.current !== identity) {
         previous.current = identity
         anchor.current = null
+        publishedViewport.current = null
         interactionPinned.current = false
         descendantWheel.current = null
         userScrollEpoch.current = 0
@@ -113,10 +139,10 @@ export default function ChatHistoryView(props: Contract.Input) {
       const userPending = userScrollEpoch.current !== measuredScrollEpoch.current
       if (userPending && !freshLayout) return
       const rows = ownRows(viewport)
-      if (interactionPinned.current && !rows.some(row => row.getAttribute("data-chat-history-id") === anchor.current?.id)) interactionPinned.current = false
+      const positioned = rows.map(row => ({id: row.getAttribute("data-chat-history-id")!, rect: row.getLayoutRect(viewport)}))
+      if (interactionPinned.current && !positioned.some(item => item.id === anchor.current?.id)) interactionPinned.current = false
       if (!userPending && !followingIntent.current && anchor.current) {
-        const row = rows.find(item => item.getAttribute("data-chat-history-id") === anchor.current!.id)
-        const rect = row?.getLayoutRect(viewport)
+        const rect = positioned.find(item => item.id === anchor.current!.id)?.rect
         if (rect && writeOwnedScroll(viewport, viewport.scrollTop + rect.top - anchor.current.top)) return
       }
       if (!userPending && followingIntent.current) {
@@ -124,36 +150,56 @@ export default function ChatHistoryView(props: Contract.Input) {
         const delta = endRect === null || endRect === undefined ? 0 : endRect.bottom - box.height
         if (writeOwnedScroll(viewport, viewport.scrollTop + delta)) return
       }
-      const positioned = rows.map(row => ({row, rect: row.getLayoutRect(viewport)}))
       const visible = positioned.filter(item => item.rect !== null && item.rect.bottom > 0 && item.rect.top < box.height)
       measuredScrollEpoch.current = userScrollEpoch.current
-      if (!interactionPinned.current) anchor.current = captureHistoryAnchor(viewport, rows) ?? anchor.current
+      const firstVisible = visible.find(item => item.rect!.top >= 0) ?? visible[0]
+      if (!interactionPinned.current && firstVisible) anchor.current = {id: firstVisible.id, top: firstVisible.rect!.top}
+      let heightsChanged = false
       const currentIds = new Set(props.history.rows.map(row => row.header.id))
-      for (const id of heights.current.keys()) if (!currentIds.has(id)) heights.current.delete(id)
-      for (const item of positioned) {
-        const id = item.row.getAttribute("data-chat-history-id")!
-        if (item.rect !== null) heights.current.set(id, item.rect.height)
+      for (const id of heights.current.keys()) if (!currentIds.has(id)) {
+        heights.current.delete(id)
+        heightsChanged = true
       }
-      props.onRowHeights?.(heights.current)
+      for (const item of positioned) {
+        if (item.rect !== null && heights.current.get(item.id) !== item.rect.height) {
+          heights.current.set(item.id, item.rect.height)
+          heightsChanged = true
+        }
+      }
+      if (heightsChanged) props.onRowHeights?.(new Map(heights.current))
       const firstRect = positioned[0]?.rect
       const lastRect = positioned.at(-1)?.rect
       const atEnd = lastRect == null || lastRect.bottom <= box.height + 24
       followingIntent.current = !interactionPinned.current && atEnd && props.history.after === null
-      props.onViewport({ids: visible.map(item => item.row.getAttribute("data-chat-history-id")!),
+      const nextViewport: HistoryViewport = {
+        ids: visible.map(item => item.id),
         nearStart: firstRect == null || firstRect.top >= -120,
         nearEnd: lastRect == null || lastRect.bottom <= box.height + 120,
-        following: followingIntent.current})
+        following: followingIntent.current,
+      }
+      const published = publishedViewport.current
+      if (!published || published.nearStart !== nextViewport.nearStart || published.nearEnd !== nextViewport.nearEnd ||
+        published.following !== nextViewport.following || published.ids.length !== nextViewport.ids.length ||
+        published.ids.some((id, index) => id !== nextViewport.ids[index])) {
+        publishedViewport.current = nextViewport
+        props.onViewport(nextViewport)
+      }
     } finally {measuring.current = false}
   }
+  currentMeasure.current = measure
   useLayoutEffect(() => {
     const viewport = log.current
     if (!viewport) return
-    const releases = [observeElementLayout(viewport, () => measure(true))]
+    const releases = [observeElementLayout(viewport, () => scheduleMeasure(true))]
     for (const row of ownRows(viewport)) {
-      releases.push(observeElementLayout(row, () => measure(true), {relativeTo: viewport}))
+      releases.push(observeElementLayout(row, () => scheduleMeasure(true), {relativeTo: viewport}))
     }
-    queueMicrotask(() => measure())
-    return () => {for (const release of releases) release()}
+    if (end.current) releases.push(observeElementLayout(end.current, () => scheduleMeasure(true), {relativeTo: viewport}))
+    scheduleMeasure()
+    return () => {
+      scheduled.current = null
+      for (const release of releases) release()
+    }
   }, [identity, props.history.rows, props.history.following])
   useLayoutEffect(() => () => props.onVisible(false), [identity])
   return <div

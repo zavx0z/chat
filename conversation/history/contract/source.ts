@@ -6,7 +6,7 @@ import type {HistoryEvidencePage} from "./evidence-page"
 
 /** Transport и преобразование собственного backend принадлежат приложению. */
 export type HistorySource<Header extends HistoryHeader, Body, Evidence> = Readonly<{
-  readPage(conversationId: string, query: HistoryQuery, signal: AbortSignal): Promise<HistoryPage<Header>>
+  readPage(conversationId: string, query: HistoryQuery, signal: AbortSignal): Promise<HistoryPage<Header, Body>>
   readBody(conversationId: string, id: string, signal: AbortSignal): Promise<HistoryBody<Body>>
   readEvidence(conversationId: string, id: string, query: HistoryQuery, signal: AbortSignal): Promise<HistoryEvidencePage<Evidence>>
 }>

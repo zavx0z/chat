@@ -95,7 +95,10 @@ test("nested wheel/key не оставляют outer pending epoch; реальн
     row.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowUp", bubbles: true}))
     f.rerender()
     await f.settle()
-    expect(f.reports).toBeGreaterThan(reportCount)
+    expect(f.outer().scrollTop).toBe(outerTop)
+    // Ввод внутри вложенного viewport и обычный render не публикуют прежний
+    // видимый диапазон outer заново; дальнейшая scroll chain всё ещё работает.
+    expect(f.reports).toBe(reportCount)
     // Дойдём wheel до верхнего края inner; следующий wheel должен прокрутить outer.
     for (let i = 0; i < 24; i++) {
       f.input.wheel(f.renderer.flush(), {clientX: rect.left + 20, clientY: Math.max(5, rect.top + 40), deltaY: -80})
