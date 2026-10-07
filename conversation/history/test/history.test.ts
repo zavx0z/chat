@@ -50,7 +50,7 @@ function fixture(count = 192, textBytes = 32) {
     viewport(ids: string[], direction: "before" | "after" | "none" = "none", following = false) {window.viewport({ids, nearStart: direction === "before", nearEnd: direction === "after", following})}}
 }
 
-test("глубокая история держит не более трёх смежных страниц, только visible bodies; eviction требует нового чтения", async () => {
+test("глубокая история держит не более трёх смежных страниц, показывает только visible bodies; eviction требует нового чтения", async () => {
   const f = fixture()
   f.accept()
   await tick()
@@ -307,4 +307,58 @@ test("повтор чтения изменённой записи обновля
   expect(f.window.getSnapshot().rows.find(row => row.header.id === "m128")!.body?.text).toBe("Исправленная запись прошлого")
   expect(f.calls.filter(call => call.operation === "page").at(-1)?.query).toMatchObject({after: 127})
   f.window.dispose()
+})
+
+test("неизменный snapshot стабилен; возврат к малому сообщению использует кеш, скрытие чата очищает его", async () => {
+  const f = fixture()
+  try {
+    f.accept()
+    await tick()
+    f.viewport(["m160"])
+    await tick()
+    const first = f.window.getSnapshot()
+    expect(f.window.getSnapshot()).toBe(first)
+    for (let i = 0; i < 10; i++) {
+      f.viewport([])
+      expect(f.window.getSnapshot().rows.find(row => row.header.id === "m160")?.body).toBeUndefined()
+      f.viewport(["m160"])
+      await tick()
+      expect(f.window.getSnapshot().rows.find(row => row.header.id === "m160")?.body).toBeDefined()
+    }
+    expect(f.calls.filter(call => call.operation === "body" && call.id === "m160")).toHaveLength(1)
+    f.window.setActive(false)
+    f.window.setActive(true)
+    await tick()
+    f.viewport(["m160"])
+    await tick()
+    expect(f.calls.filter(call => call.operation === "body" && call.id === "m160")).toHaveLength(2)
+  } finally {f.window.dispose()}
+})
+
+test("частые ревизии объединяются в одно чтение хвоста; закрытие отменяет отложенное чтение", async () => {
+  let reads = 0
+  let revision = 1
+  const window = createHistoryWindow({refreshDelayMs: 30, changed() {}, isOrdinary: () => false,
+    source: {
+      async readPage(conversationId) {
+        reads++
+        return {conversationId, revision, total: 1, start: 0, items: [{id: "m", ordinal: 0, revision, bodyBytes: 1, evidenceCount: 0}], before: null, after: null}
+      },
+      async readBody() {throw new Error("unused")},
+      async readEvidence() {throw new Error("unused")},
+    },
+  })
+  try {
+    window.accept({id: "s", history: {revision, total: 1}})
+    await tick()
+    expect(reads).toBe(1)
+    for (revision = 2; revision <= 20; revision++) window.accept({id: "s", history: {revision, total: 1}})
+    expect(reads).toBe(1)
+    await Bun.sleep(45)
+    expect(reads).toBe(2)
+    window.accept({id: "s", history: {revision: 30, total: 1}})
+    window.setActive(false)
+    await Bun.sleep(45)
+    expect(reads).toBe(2)
+  } finally {window.dispose()}
 })

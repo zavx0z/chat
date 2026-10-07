@@ -17,5 +17,7 @@ export type HistoryInput<Header extends HistoryHeader, Body, Evidence> = Readonl
   /** Число заголовков одной страницы и resident страниц; малые вложенные окна используют тот же controller. */
   pageSize?: number
   maxPages?: number
+  /** Объединяет поток ревизий перед повторным чтением хвоста; первое открытие не задерживается. */
+  refreshDelayMs?: number
   changed(): void
 }>

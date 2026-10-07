@@ -15,6 +15,7 @@ import type {HistoryQuery} from "./contract/query"
 import type {HistorySelection} from "./contract/selection"
 import type {HistoryViewport} from "./contract/viewport"
 import type {HistoryResidencyBudget} from "./contract/residency-budget"
+import type {HistoryView} from "./contract/view"
 
 export type {HistoryController} from "./contract/controller"
 export type {HistoryHeader} from "./contract/header"
@@ -75,7 +76,8 @@ export function createHistoryResidencyBudget(): HistoryResidencyBudget {
 
 /**
 Окно одной выбранной беседы, независимое от её авторов и backend. Заголовки ограничены тремя страницами,
-body/evidence единым byte budget. Visibility/collapse отзывает запрос и strong refs;
+body/evidence единым byte budget. Visibility/collapse отзывает запрос; малые
+обычные сообщения сохраняются в том же ограниченном кеше до eviction окна;
 поздний результат не может восстановить закрытую либо другую беседу.
 Если host создаёт вложенные окна, общий residencyBudget ограничивает сумму их
 сохранённых body/evidence; создание окна само не читает источник и не публикует состояние.
@@ -96,6 +98,22 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
   let pages: Page[] = []
   let pageRequest: AbortController | null = null
   let pageAgain = false
+  let refreshTimer: ReturnType<typeof setTimeout> | undefined
+  const refreshDelay = Math.max(0, Math.min(250, input.refreshDelayMs ?? 0))
+  const refreshTail = () => {
+    if (refreshDelay === 0) {void load(); return}
+    refreshTimer ??= setTimeout(() => {
+      refreshTimer = undefined
+      if (!active || disposed) return
+      if (following) void load()
+      else {
+        // За время объединения ревизий человек мог выйти из follow-tail.
+        // Обновить уже видимую страницу, сохранив её место и соседей.
+        const page = pages.find(value => value.items.some(item => visible.has(item.id))) ?? pages[0]
+        if (page) void load(page.start === 0 ? {around: 0} : {after: page.start - 1}, page === pages[0] ? "before" : "after")
+      }
+    }, refreshDelay)
+  }
   let pendingPage: {query: HistoryQuery; direction: "before" | "after" | "tail"} | undefined
   let error: string | undefined
   let failedPage: {query: HistoryQuery, direction: "before" | "after" | "tail"} | undefined
@@ -110,24 +128,41 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
   const requestRevisions = new Map<string, number>()
   const failures = new Map<string, {message: string; revision: number}>()
   const blocked = new Set<string>()
-  const headers = () => [...new Map(pages.flatMap(page => page.items).map(item => [item.id, item])).values()].sort((a, b) => a.ordinal - b.ordinal)
+  let headerPages: Page[] | undefined
+  let headerCache: Header[] = []
+  let snapshot: HistoryView<Header, Body, Evidence> | undefined
+  const invalidateSnapshot = () => {snapshot = undefined}
+  const headers = () => {
+    if (headerPages !== pages) {
+      headerPages = pages
+      headerCache = [...new Map(pages.flatMap(page => page.items).map(item => [item.id, item])).values()].sort((a, b) => a.ordinal - b.ordinal)
+    }
+    return headerCache
+  }
   const needed = (id: string) => active && visible.has(id) && headers().some(header => header.id === id && (input.isOrdinary(header) || expanded.has(id)))
-  const changed = () => {if (!disposed) input.changed()}
+  const changed = () => {snapshot = undefined; if (!disposed) input.changed()}
   const releaseAllocation = (id: string) => {
     const key = allocations.get(id)
     if (key !== undefined) input.residencyBudget?.release(key)
     allocations.delete(id)
   }
-  const cancelDetails = (id: string) => {
-    releaseAllocation(id)
+  const cancelDetails = (id: string, retainSmallBody = false) => {
+    const stored = cache.get(id)
+    const header = headers().find(item => item.id === id)
+    const retain = retainSmallBody && stored !== undefined && stored.body.bytes <= 131072 && stored.evidence === undefined &&
+      header !== undefined && input.isOrdinary(header) && stored.body.revision === header.revision
+    if (!retain) releaseAllocation(id)
     requests.get(id)?.abort()
     requests.delete(id)
     requestRevisions.delete(id)
-    cache.delete(id)
+    if (!retain) cache.delete(id)
     failures.delete(id)
     blocked.delete(id)
   }
   const release = () => {
+    snapshot = undefined
+    clearTimeout(refreshTimer)
+    refreshTimer = undefined
     generation++
     viewportKey = ""
     pageRequest?.abort()
@@ -149,7 +184,7 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
   }
   const valid = (epoch: number, chatId: string) => !disposed && active && epoch === generation && selected?.id === chatId
   const trim = () => {
-    for (const [id] of cache) if (!needed(id)) cancelDetails(id)
+    for (const [id] of cache) if (!needed(id)) cancelDetails(id, true)
   }
   const usage = (body: number, evidence: number) => ({regular: (body <= CACHE_BYTES ? body : 0) + (evidence <= CACHE_BYTES ? evidence : 0), large: Number(body > CACHE_BYTES) + Number(evidence > CACHE_BYTES)})
   const makeRoom = (id: string, bytes: number, evidence = false): boolean => {
@@ -251,26 +286,30 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
       if (pageRequest === controller) pageRequest = null
       if (valid(epoch, chatId)) {
         changed()
-        if (pageAgain && following) {pageAgain = false; void load()}
+        if (pageAgain && following) {pageAgain = false; refreshTail()}
         else pump()
       }
     }
   }
   return {
     getSnapshot() {
-      return {conversationId: selected?.id ?? null, revision: selected?.history.revision ?? 0, total: selected?.history.total ?? 0,
-        rows: headers().map(header => ({header, visible: visible.has(header.id), body: cache.get(header.id)?.body.entry, evidence: cache.get(header.id)?.evidence,
+      return snapshot ??= {conversationId: selected?.id ?? null, revision: selected?.history.revision ?? 0, total: selected?.history.total ?? 0,
+        rows: headers().map(header => ({header, visible: visible.has(header.id), body: needed(header.id) ? cache.get(header.id)?.body.entry : undefined, evidence: needed(header.id) ? cache.get(header.id)?.evidence : undefined,
           expanded: expanded.has(header.id), loading: requests.has(header.id), error: failures.get(header.id)?.message})),
         before: pages[0]?.before ?? null, after: pages.at(-1)?.after ?? null, unread: following ? 0 : Math.max(0, (selected?.history.total ?? 0) - readTotal, (selected?.history.revision ?? 0) > readRevision ? 1 : 0),
         following, loading: pageRequest !== null, error}
     },
     accept(snapshot: HistorySelection) {
+      if (selected?.id === snapshot.id && selected.scope === snapshot.scope && selected.history.revision === snapshot.history.revision && selected.history.total === snapshot.history.total) return
+      // Снимок может обновить счётчики даже при чтении прошлого без загрузки хвоста.
+      invalidateSnapshot()
       const previous = selected
       const reset = previous === null || previous.id !== snapshot.id || previous.scope !== snapshot.scope
       if (reset) {release(); resumeOrdinal = undefined; following = true; readTotal = snapshot.history.total; readRevision = snapshot.history.revision}
       selected = snapshot
       if (snapshot.history.total === 0) {pages = []; trim(); return}
-      if (active && (reset || following && previous?.history.revision !== snapshot.history.revision)) void load()
+      if (active && reset) void load()
+      else if (active && (following || refreshDelay > 0) && previous?.history.revision !== snapshot.history.revision) refreshTail()
     },
     setActive(value: boolean) {
       if (active === value || disposed) return
@@ -289,8 +328,12 @@ export function createHistoryWindow<Header extends HistoryHeader, Body, Evidence
       visible.clear()
       const available = new Set(headers().map(header => header.id))
       for (const id of viewport.ids) if (available.has(id)) visible.add(id)
-      for (const id of previous) if (!visible.has(id)) cancelDetails(id)
-      for (const id of visible) if (!previous.has(id)) blocked.delete(id)
+      for (const id of previous) if (!visible.has(id)) cancelDetails(id, true)
+      for (const id of visible) if (!previous.has(id)) {
+        blocked.delete(id)
+        const stored = cache.get(id)
+        if (stored) stored.touched = ++clock
+      }
       following = viewport.following
       if (following) {readTotal = selected?.history.total ?? 0; readRevision = selected?.history.revision ?? 0}
       trim()
