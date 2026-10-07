@@ -306,3 +306,24 @@ test("retry одного source не запрещает cache retention друг
   image!.release()
   cache.dispose()
 })
+
+test("очень большой PNG отклоняется по заголовку до decode; обычному передаётся native resize", async () => {
+  const png = (width: number, height: number) => {
+    const buffer = new ArrayBuffer(24)
+    const view = new DataView(buffer)
+    view.setUint32(0, 0x89504e47)
+    view.setUint32(4, 0x0d0a1a0a)
+    view.setUint32(12, 0x49484452)
+    view.setUint32(16, width)
+    view.setUint32(20, height)
+    return new Blob([buffer], {type: "image/png"})
+  }
+  const f = fixture()
+  await expect(prepareMediaImage({source: png(20000, 20000), mode: "thumbnail", host: f.host})).rejects.toThrow("32 мегапикселя")
+  expect(f.decoded).toHaveLength(0)
+  const calls: unknown[] = []
+  const host = {...f.host, async decode(blob: Blob, resize?: {resizeWidth: number}) {calls.push(resize); return f.host.decode(blob)}}
+  const result = await prepareMediaImage({source: png(6000, 4000), mode: "thumbnail", host})
+  expect(calls).toEqual([{resizeWidth: 512}])
+  result?.release()
+})

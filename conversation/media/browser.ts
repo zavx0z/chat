@@ -1,4 +1,6 @@
 /** Сохраняемое содержимое вложения, независимое от транспорта и provider protocol. */
+import {imageDimensions} from "./image-dimensions"
+
 export type MediaAttachment = Readonly<{
   id: string
   name: string
@@ -179,7 +181,7 @@ export async function pickMedia(options: MediaOptions): Promise<readonly MediaDr
 
 /** Native host IO для тестирования и browser окружений, без renderer implementation objects. */
 export type ImagePreparationHost = Readonly<{
-  decode(source: Blob): Promise<ImageBitmap>
+  decode(source: Blob, resize?: Readonly<{resizeWidth: number}>): Promise<ImageBitmap>
   canvas(width: number, height: number): OffscreenCanvas
   createUrl(source: Blob): string
   revokeUrl(url: string): void
@@ -252,7 +254,7 @@ async function imageSlot(options: ImagePreparationOptions): Promise<(() => void)
 function nativeImageHost(): ImagePreparationHost {
   if (typeof createImageBitmap !== "function" || typeof OffscreenCanvas !== "function") throw new Error("Browser не предоставляет подготовку изображения")
   return {
-    decode: source => createImageBitmap(source),
+    decode: (source, resize) => createImageBitmap(source, {...resize, resizeQuality: "high"}),
     canvas: (width, height) => new OffscreenCanvas(width, height),
     createUrl: source => URL.createObjectURL(source),
     revokeUrl: url => URL.revokeObjectURL(url),
@@ -465,7 +467,9 @@ slot; ожидающие заявки не запускают loader и огра
 и кодированию Blob; он не является presentation Canvas или вторым semantic UI.
 
 Bitmap и canvas освобождаются до выдачи URL lease. API ограничивает output pixels,
-compressed source и retained варианты, но не гарантирует предел peak memory
+compressed source и retained варианты. PNG/JPEG/GIF/WebP проверяются по доступному
+заголовку до decode (до 32 MP); native decode получает целевой resize.
+Неизвестный или неполный заголовок проверяется после decode. Это не гарантирует предел peak memory
 внутри native decoder: createImageBitmap может сначала декодировать исходный размер.
 */
 export async function prepareMediaImage(options: ImagePreparationOptions): Promise<PreparedMediaImage | null> {
@@ -504,9 +508,19 @@ export async function prepareMediaImage(options: ImagePreparationOptions): Promi
       : await imageSource(options, host)
     if (source === null || !imageCurrent(options)) return null
     if (!(source instanceof Blob) || source.size > MAX_IMAGE_SOURCE_BYTES) throw new Error("Источник изображения ограничен 16 МиБ")
-    bitmap = await host.decode(source)
+    const dimensions = await imageDimensions(source)
+    if (!imageCurrent(options)) return null
+    if (dimensions && (dimensions.width <= 0 || dimensions.height <= 0 || dimensions.width * dimensions.height > 32_000_000)) {
+      throw new Error("Изображение превышает 32 мегапикселя. Уменьшите его размер для предпросмотра")
+    }
+    const decodeScale = dimensions ? Math.min(1, edge / Math.max(dimensions.width, dimensions.height)) : 1
+    bitmap = await host.decode(source, dimensions && decodeScale < 1 ? {
+      // Одна сторона сохраняет пропорции и при EXIF-повороте native decoder.
+      resizeWidth: Math.max(1, Math.floor(Math.min(edge, dimensions.width, dimensions.height))),
+    } : undefined)
     if (!imageCurrent(options)) return null
     if (![bitmap.width, bitmap.height].every(value => Number.isSafeInteger(value) && value > 0)) throw new Error("Изображение имеет недопустимые размеры")
+    if (bitmap.width * bitmap.height > 32_000_000) throw new Error("Изображение превышает 32 мегапикселя")
     const scale = Math.min(1, edge / bitmap.width, edge / bitmap.height,
       viewport === undefined ? 1 : viewport.width * dpr / bitmap.width,
       viewport === undefined ? 1 : viewport.height * dpr / bitmap.height)
