@@ -1,4 +1,9 @@
-/** Общий измеряемый viewport истории: bounded slots, scroll anchor и visibility lifecycle. */
+/**
+Измеряемая область истории с ограниченным содержимым и сохранением позиции.
+Обычный ввод прокручивает платформа; компонент корректирует позицию только
+при изменении раскладки или явном переходе к хвосту. Неизменные сообщения
+не требуют DOM-изменений или дополнительных записей scrollTop после wheel.
+*/
 import Button from "@zavx0z/immersive-ui-component-button-basic"
 import {useLayoutEffect, useRef} from "@zavx0z/immersive-component"
 import {observeElementLayout} from "@zavx0z/immersive-dom"
@@ -9,7 +14,8 @@ export type {ChatHistoryView} from "./contract"
 
 export default function ChatHistoryView(props: Contract.Input) {
   const log = useRef<HTMLElement | null>(null)
-  const end = useRef<HTMLElement | null>(null)
+  const content = useRef<HTMLElement | null>(null)
+  const layout = useRef<{width: number, height: number, contentHeight: number, rows: readonly {id: string, top: number, width: number, height: number}[]} | null>(null)
   const anchor = useRef<HistoryAnchor | null>(null)
   const heights = useRef(new Map<string, number>())
   const identity = props.identity
@@ -39,7 +45,7 @@ export default function ChatHistoryView(props: Contract.Input) {
   const measuredScrollEpoch = useRef(0)
   const writingScroll = useRef(false)
   const interactionPinned = useRef(false)
-  const descendantWheel = useRef<{viewport: HTMLElement, before: number, ownedBefore: number | null} | null>(null)
+  const pendingScrollInput = useRef<{viewport: HTMLElement, before: number, ownedBefore: number | null} | null>(null)
   const ownedScrollTop = useRef<number | null>(null)
   const markUserScroll = (): void => {
     interactionPinned.current = false
@@ -68,23 +74,23 @@ export default function ChatHistoryView(props: Contract.Input) {
     interactionPinned.current = true
     ownedScrollTop.current = null
     measuredScrollEpoch.current = userScrollEpoch.current
-    descendantWheel.current = null
+    pendingScrollInput.current = null
   }
-  const consumeDescendantWheel = (): void => {
-    const pending = descendantWheel.current
+  const consumeScrollInput = (): void => {
+    const pending = pendingScrollInput.current
     if (!pending) return
-    descendantWheel.current = null
+    pendingScrollInput.current = null
     const owned = ownedScrollTop.current
     const ownedChange = owned !== null && owned !== pending.ownedBefore && Math.abs(pending.viewport.scrollTop - owned) <= 0.5
     if (pending.viewport === log.current && !writingScroll.current && !ownedChange && pending.viewport.scrollTop !== pending.before) markUserScroll()
   }
-  const observeDescendantWheel = (): void => {
+  const observeScrollInput = (): void => {
     const viewport = log.current
-    if (!viewport) return
+    if (!viewport || pendingScrollInput.current?.viewport === viewport) return
     const pending = {viewport, before: viewport.scrollTop, ownedBefore: ownedScrollTop.current}
-    descendantWheel.current = pending
-    // Native wheel применяет default scroll после dispatch. Не предсказываем его owner.
-    queueMicrotask(() => {if (descendantWheel.current === pending) consumeDescendantWheel()})
+    pendingScrollInput.current = pending
+    // Native input применяет default scroll после dispatch. Не предсказываем его owner.
+    queueMicrotask(() => {if (pendingScrollInput.current === pending) consumeScrollInput()})
   }
   // Только input означает намерение пользователя. Layout clamp после unload тоже
   // выдаёт scroll, но не должен создавать epoch, ожидающий ещё одного кадра.
@@ -110,6 +116,7 @@ export default function ChatHistoryView(props: Contract.Input) {
         // После освобождения controller очищает visibility. Новое окно получает
         // видимый диапазон повторно, даже если его ids совпадают с прежними.
         publishedViewport.current = null
+        layout.current = null
         // Освобождённое окно больше не имеет прежнего scroll range. Не оставляем
         // requested offset от 96 строк на пустом/вновь загруженном окне из 32.
         // Смысловая позиция остаётся в anchor; controller сохраняет ordinal.
@@ -121,34 +128,55 @@ export default function ChatHistoryView(props: Contract.Input) {
       if (previous.current !== identity) {
         previous.current = identity
         anchor.current = null
+        layout.current = null
         publishedViewport.current = null
         interactionPinned.current = false
-        descendantWheel.current = null
+        pendingScrollInput.current = null
         userScrollEpoch.current = 0
         measuredScrollEpoch.current = 0
         ownedScrollTop.current = null
         followingIntent.current = props.history.following
         acknowledgedFollowing.current = props.history.following
       }
+      const requestedFollowing = acknowledgedFollowing.current !== props.history.following && props.history.following
       if (acknowledgedFollowing.current !== props.history.following) {
         acknowledgedFollowing.current = props.history.following
         followingIntent.current = props.history.following
         if (props.history.following) interactionPinned.current = false
       }
-      consumeDescendantWheel()
+      consumeScrollInput()
       const userPending = userScrollEpoch.current !== measuredScrollEpoch.current
       if (userPending && !freshLayout) return
       const rows = ownRows(viewport)
       const positioned = rows.map(row => ({id: row.getAttribute("data-chat-history-id")!, rect: row.getLayoutRect(viewport)}))
+      const contentRect = content.current?.getLayoutRect(viewport)
+      if (!contentRect || positioned.some(item => item.rect === null)) return
+      // Высота содержимого включает собственные отступы. Его положение даёт
+      // фактический scroll после layout clamp, а не прежнее requested значение.
+      const maximum = Math.max(0, contentRect.height - box.height)
+      const effectiveTop = Math.max(0, -contentRect.top)
+      const geometry = {width: box.width, height: box.height, contentHeight: contentRect.height,
+        rows: positioned.map(item => ({id: item.id, top: item.rect!.top - contentRect.top, width: item.rect!.width, height: item.rect!.height}))}
+      const prior = layout.current
+      const differs = (a: number, b: number) => Math.abs(a - b) > 0.0001
+      const changedLayout = prior === null || differs(prior.width, geometry.width) || differs(prior.height, geometry.height) ||
+        differs(prior.contentHeight, geometry.contentHeight) || prior.rows.length !== geometry.rows.length ||
+        geometry.rows.some((row, index) => {
+          const old = prior.rows[index]
+          return !old || old.id !== row.id || differs(old.top, row.top) || differs(old.width, row.width) || differs(old.height, row.height)
+        })
+      if (changedLayout) layout.current = geometry
       if (interactionPinned.current && !positioned.some(item => item.id === anchor.current?.id)) interactionPinned.current = false
-      if (!userPending && !followingIntent.current && anchor.current) {
-        const rect = positioned.find(item => item.id === anchor.current!.id)?.rect
-        if (rect && writeOwnedScroll(viewport, viewport.scrollTop + rect.top - anchor.current.top)) return
-      }
-      if (!userPending && followingIntent.current) {
-        const endRect = end.current?.getLayoutRect(viewport)
-        const delta = endRect === null || endRect === undefined ? 0 : endRect.bottom - box.height
-        if (writeOwnedScroll(viewport, viewport.scrollTop + delta)) return
+      // Изменение видимости от wheel не является изменением содержимого.
+      // На обычной прокрутке компонент вообще не пишет scrollTop.
+      if (!userPending && (changedLayout || requestedFollowing)) {
+        if (followingIntent.current) {
+          if (writeOwnedScroll(viewport, maximum)) return
+        } else if (anchor.current) {
+          const rect = positioned.find(item => item.id === anchor.current!.id)?.rect
+          const target = rect ? effectiveTop + rect.top - anchor.current.top : effectiveTop
+          if (writeOwnedScroll(viewport, Math.min(maximum, Math.max(0, target)))) return
+        }
       }
       const visible = positioned.filter(item => item.rect !== null && item.rect.bottom > 0 && item.rect.top < box.height)
       measuredScrollEpoch.current = userScrollEpoch.current
@@ -169,7 +197,7 @@ export default function ChatHistoryView(props: Contract.Input) {
       if (heightsChanged) props.onRowHeights?.(new Map(heights.current))
       const firstRect = positioned[0]?.rect
       const lastRect = positioned.at(-1)?.rect
-      const atEnd = lastRect == null || lastRect.bottom <= box.height + 24
+      const atEnd = maximum - effectiveTop <= 0.5
       followingIntent.current = !interactionPinned.current && atEnd && props.history.after === null
       const nextViewport: HistoryViewport = {
         ids: visible.map(item => item.id),
@@ -194,7 +222,7 @@ export default function ChatHistoryView(props: Contract.Input) {
     for (const row of ownRows(viewport)) {
       releases.push(observeElementLayout(row, () => scheduleMeasure(true), {relativeTo: viewport}))
     }
-    if (end.current) releases.push(observeElementLayout(end.current, () => scheduleMeasure(true), {relativeTo: viewport}))
+    if (content.current) releases.push(observeElementLayout(content.current, () => scheduleMeasure(true), {relativeTo: viewport}))
     scheduleMeasure()
     return () => {
       scheduled.current = null
@@ -209,8 +237,9 @@ export default function ChatHistoryView(props: Contract.Input) {
       ref={element => {log.current = element}}
       onWheel={event => {
         if (event.deltaY === 0) return
-        if (ownInput(event.target)) markUserScroll()
-        else observeDescendantWheel()
+        // Определяем сдвинутый viewport после native default action. Последний
+        // wheel инерции у границы может не сдвинуть ни одного scroll owner.
+        observeScrollInput()
       }}
       onPointerDown={event => {
         if (!ownInput(event.target)) return
@@ -220,7 +249,7 @@ export default function ChatHistoryView(props: Contract.Input) {
       onKeyDown={event => {
         if (!ownInput(event.target)) return
         if (["Enter", " ", "Spacebar"].includes(event.key) && inputElement(event.target)?.closest("button")) pinInteraction(event.target)
-        else if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"].includes(event.key)) markUserScroll()
+        else if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"].includes(event.key)) observeScrollInput()
       }}
       style={css`
         box-sizing: border-box;
@@ -230,30 +259,32 @@ export default function ChatHistoryView(props: Contract.Input) {
         min-height: 0;
         min-width: 0;
         width: 100%;
-        gap: 20px;
-        padding: 12px 4px;
         overflow-y: auto;
         overflow-x: hidden;
         scrollbar-width: none;
       `}
     >
-      <slot />
-      {props.history.loading ? <HistoryLoading /> : null}
-      {props.history.error ? <HistoryError error={props.history.error} onRetry={props.onRetry} /> : null}
-      {props.history.unread > 0 ? <HistoryUnread
-        count={props.history.unread}
-        onTail={props.onTail}
-      /> : null}
-      <span
-        ref={element => { end.current = element }}
-        aria-hidden="true"
+      <div
+        ref={element => {content.current = element}}
         style={css`
-          display: block;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
           flex-shrink: 0;
-          width: 1px;
-          height: 1px;
+          width: 100%;
+          min-width: 0;
+          gap: 20px;
+          padding: 12px 4px;
         `}
-      />
+      >
+        <slot />
+        {props.history.loading ? <HistoryLoading /> : null}
+        {props.history.error ? <HistoryError error={props.history.error} onRetry={props.onRetry} /> : null}
+        {props.history.unread > 0 ? <HistoryUnread
+          count={props.history.unread}
+          onTail={props.onTail}
+        /> : null}
+      </div>
     </div>
 }
 
