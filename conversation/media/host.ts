@@ -11,6 +11,12 @@ export type MediaHost = Readonly<{
   images?: MediaImageCache | undefined
   load(source: MediaSource, signal: AbortSignal): Promise<Blob>
   download(media: MediaPreview, signal: AbortSignal): Promise<void>
+  /**
+  Явное открытие original image в самостоятельной browser вкладке. Host резервирует
+  её синхронно по пользовательскому действию; Promise завершается после handoff.
+  Signal отменяет только подготовку, готовая вкладка переживает закрытие overlay.
+  */
+  openOriginal?(media: MediaPreview, signal: AbortSignal): Promise<void>
   createAudio?(blob: Blob, changed: (state: MediaAudioState) => void): MediaAudioPlayback
 }>
 export const MediaHostContext = createContext<MediaHost | null>(null)

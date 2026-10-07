@@ -1,6 +1,6 @@
 /** Текст, изображения и embedded resources сообщения в общем Document, независимо от backend. */
 import {component, provideContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState} from "@zavx0z/immersive-component"
-import {Markdown, MarkdownMediaContext, type MarkdownProps, type MarkdownMediaHost} from "@zavx0z/immersive-markdown"
+import {Markdown, MarkdownMediaContext, type MarkdownProps, type MarkdownMediaHost, type MarkdownImageSource} from "@zavx0z/immersive-markdown"
 import {prepareMediaImage, type MediaAttachment, type PreparedMediaImage} from "../../media/browser"
 import CodeEditor from "@zavx0z/immersive-ui-component-view-code-editor"
 import Button from "@zavx0z/immersive-ui-component-button-basic"
@@ -45,6 +45,7 @@ function MarkdownText(props: Readonly<{text: string, onMedia?: ((media: MediaPre
   const host = useContext(MediaHostContext)
   const bridge = useMemo<MarkdownMediaHost>(() => ({
     linkTarget: "_blank",
+    renderImage(image) {return markdownImageContent(image, props.onMedia)},
     async loadImage(image, signal) {
       try {
         const prepared = await prepareMediaImage({source: image.src, mode: "thumbnail", signal, cache: host?.images,
@@ -67,6 +68,21 @@ function markdownWithMedia(source: string, host: MarkdownMediaHost): MarkdownCon
   return provideContext(MarkdownMediaContext, host,
     component(Markdown as unknown as CompiledTemplate<MarkdownProps>, {source, wrap: true})) as unknown as JSX.Element
 }
+function markdownImageContent(image: MarkdownImageSource, onMedia: ((media: MediaPreview) => void) | undefined): JSX.Element {
+  return component(ChatMarkdownImage as unknown as CompiledTemplate<Readonly<{image: MarkdownImageSource, onMedia: typeof onMedia}>>,
+    {image, onMedia}) as unknown as JSX.Element
+}
+
+/** Тот же thumbnail lifecycle обслуживает вложение и изображение внутри Markdown. */
+function ChatMarkdownImage(props: Readonly<{image: MarkdownImageSource, onMedia?: ((media: MediaPreview) => void) | undefined}>) {
+  const media = useMemo<MediaPreview>(() => ({source: props.image.src, mimeType: "image/*", label: props.image.alt || "Изображение"}), [props.image.src, props.image.alt])
+  return <ImagePreview
+    media={media}
+    retryLabel="Повторить загрузку"
+    onMedia={props.onMedia}
+  />
+}
+
 function MarkdownContent() {
   return <div
     style={css`
@@ -105,7 +121,7 @@ function MessageImage(props: Readonly<{data: string, mimeType: string, label: st
 }
 
 /** Thumbnail готовится штатным browser image processor; original source в img не передаётся. */
-export function ImagePreview(props: Readonly<{media: MediaPreview, onMedia?: ((media: MediaPreview) => void) | undefined}>) {
+export function ImagePreview(props: Readonly<{media: MediaPreview, retryLabel?: string, onMedia?: ((media: MediaPreview) => void) | undefined}>) {
   const element = useRef<HTMLElement | null>(null)
   const [active, setActive] = useState(false)
   const [dimensions, setDimensions] = useState<Readonly<{width: number, height: number}> | null>(null)
@@ -172,8 +188,8 @@ export function ImagePreview(props: Readonly<{media: MediaPreview, onMedia?: ((m
       active={active}
       onMedia={props.onMedia}
     /> : null}
-    {!geometry ? <MediaNotice text={error || "Подготовка изображения…"} /> : null}
-    {error ? <Button label="Повторить" onClick={() => {host?.images?.invalidate(props.media.source); setAttempt(attempt + 1)}} /> : null}
+    {!geometry ? <MediaNotice text={error || "Подготовка изображения…"} role={error ? "alert" : active ? "status" : "note"} /> : null}
+    {error ? <Button label={props.retryLabel ?? "Повторить"} onClick={() => {host?.images?.invalidate(props.media.source); setAttempt(attempt + 1)}} /> : null}
   </div>
 }
 function PreparedImage(props: Readonly<{media: MediaPreview, image: Readonly<{width: number, height: number, url?: string}>, active: boolean, onMedia?: ((media: MediaPreview) => void) | undefined}>) {

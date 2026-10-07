@@ -7,7 +7,7 @@ import {prepareMediaImage, type PreparedMediaImage} from "../../../media/browser
 import {MediaHostContext, loadMediaSource, type MediaAudioPlayback, type MediaAudioState} from "../../../media/host"
 import type {MediaPreview} from "../contract/preview"
 import type {ChatMediaOverlay as OverlayContract} from "./contract"
-import {MediaNotice, MediaDownload} from "../src/media-controls"
+import {MediaNotice, MediaDownload, MediaOriginal} from "../src/media-controls"
 export type {ChatMediaOverlay} from "./contract"
 
 /** Inline overlay сохраняет тот же semantic Document; host очищает media при закрытии/смене беседы. */
@@ -172,6 +172,7 @@ function ImageOverlay(props: OverlayContract.Input) {
       aria-label="Закрыть медиа"
       onClick={props.onClose}
     />
+    <MediaOriginal media={props.media} />
     <MediaDownload media={props.media} />
     <MediaNotice text="Предпросмотр статичный. Оригинал сохраняет исходный формат." />
     {prepared ? <OverlayImage image={prepared} label={props.media.label} /> : null}

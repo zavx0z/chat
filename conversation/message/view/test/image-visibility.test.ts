@@ -35,7 +35,7 @@ function preparation() {
   }
 }
 
-async function fixture(nested: boolean, count = 3, delayed = false) {
+async function fixture(nested: boolean, count = 3, delayed = false, markdown = false) {
   const native = preparation()
   const document = createDocument()
   const host = document.createElement("div")
@@ -57,7 +57,7 @@ async function fixture(nested: boolean, count = 3, delayed = false) {
     async download() {},
   }
   const media: MediaPreview[] = Array.from({length: count}, (_, index) => ({source: "https://example.com/shared.png", mimeType: "image/png", label: `Фото ${index}`}))
-  const props = {media, nested}
+  const props = {media, nested, markdown}
   root.render(provideContext(MediaHostContext, mediaHost, component(Fixture as unknown as CompiledTemplate<typeof props>, props)))
   const imageSignals: AbortSignal[] = []
   const renderer = createDocumentRenderer({document, root: host, viewport: {width: 360, height: 320},
@@ -151,5 +151,63 @@ test("уход за экран отменяет ожидающий loader и п�
     expect(f.native.decodes).toBe(0)
     expect(f.host.querySelector("img")).toBeNull()
     expect(f.cache.inspect()).toMatchObject({entries: 0, activeLeases: 0, retiredBytes: 0, uncachedBytes: 0})
+  } finally {f.releaseOriginal(); f.dispose()}
+})
+
+
+test("Markdown image сохраняет текст/inline/размеры, освобождает offscreen lease и возвращает encoded thumbnail без original decode", async () => {
+  const f = await fixture(false, 1, false, true)
+  try {
+    await f.settle()
+    expect(f.cache.inspect().activeLeases).toBe(1)
+    expect(f.originals).toBe(1)
+    expect(f.native.decodes).toBe(1)
+    const article = f.host.querySelector("[data-markdown]")!
+    const paragraph = article.querySelector("p")!
+    const text = paragraph.firstChild
+    const strong = paragraph.querySelector("strong")!
+    const inline = paragraph.querySelector("[data-markdown-image]")!
+    const image = inline.querySelector("img")!
+    const height = article.getLayoutRect()!.height
+    const imageHeight = image.getLayoutRect()!.height
+    for (let cycle = 0; cycle < 3; cycle++) {
+      f.outer().scrollTop = 600
+      await f.settle()
+      expect(f.cache.inspect().activeLeases).toBe(0)
+      expect(image.hasAttribute("src")).toBeFalse()
+      expect(f.host.querySelector("[data-markdown]")).toBe(article)
+      expect(article.querySelector("p")).toBe(paragraph)
+      expect(paragraph.firstChild).toBe(text)
+      expect(paragraph.querySelector("strong")).toBe(strong)
+      expect(paragraph.querySelector("[data-markdown-image]")).toBe(inline)
+      expect(inline.querySelector("img")).toBe(image)
+      expect(article.getLayoutRect()!.height).toBe(height)
+      expect(image.getLayoutRect()!.height).toBe(imageHeight)
+      f.outer().scrollTop = 0
+      await f.settle()
+      expect(image.getAttribute("src")).toStartWith("blob:")
+      expect(f.cache.inspect().activeLeases).toBe(1)
+      expect(f.originals).toBe(1)
+      expect(f.native.decodes).toBe(1)
+      expect(f.native.closes).toBe(1)
+    }
+    expect(article.querySelector("a")!.getAttribute("target")).toBe("_blank")
+  } finally {f.dispose()}
+  expect(f.cache.inspect().activeLeases).toBe(0)
+})
+
+test("ожидающий Markdown image loader отменяется при scroll outer и поздний ответ не создаёт bitmap", async () => {
+  const f = await fixture(true, 1, true, true)
+  try {
+    await f.settle()
+    expect(f.originals).toBe(1)
+    f.outer().scrollTop = 400
+    await f.settle()
+    expect(f.loadedSignals[0]!.aborted).toBeTrue()
+    f.releaseOriginal()
+    await f.settle()
+    expect(f.native.decodes).toBe(0)
+    expect(f.cache.inspect().activeLeases).toBe(0)
+    expect(f.host.querySelector("img")).toBeNull()
   } finally {f.releaseOriginal(); f.dispose()}
 })

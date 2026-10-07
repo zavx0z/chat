@@ -112,6 +112,7 @@ test("Markdown external image показывает ошибку, retry загр�
     root.render(provideContext(MediaHostContext, host, component(MessageView as unknown as CompiledTemplate<typeof props>, props)))
     await tick()
     expect(container.textContent).toContain("HTTP 404")
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("HTTP 404")
     expect(container.querySelector('img[alt="Логотип"]')).toBeNull()
     const retry = [...container.querySelectorAll("button")].find(button => button.textContent === "Повторить загрузку") as HTMLButtonElement
     retry.click()
