@@ -1,5 +1,5 @@
 /** Текст, изображения и embedded resources сообщения в общем Document, независимо от backend. */
-import {component, provideContext, useContext, useEffect, useMemo, useRef, useState} from "@zavx0z/immersive-component"
+import {component, provideContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState} from "@zavx0z/immersive-component"
 import {Markdown, MarkdownMediaContext, type MarkdownProps, type MarkdownMediaHost} from "@zavx0z/immersive-markdown"
 import {prepareMediaImage, type MediaAttachment, type PreparedMediaImage} from "../../media/browser"
 import CodeEditor from "@zavx0z/immersive-ui-component-view-code-editor"
@@ -17,6 +17,7 @@ export type {ChatMediaOverlay} from "./overlay/contract"
 export type {MessageContent} from "./contract/content"
 export type {MediaPreview} from "./contract/preview"
 import {MediaNotice, MediaDownload} from "./src/media-controls"
+import {observeElementLayout} from "@zavx0z/immersive-dom"
 
 export default function ChatMessageView(props: Contract.Input) {
   const block = props.content
@@ -105,30 +106,77 @@ function MessageImage(props: Readonly<{data: string, mimeType: string, label: st
 
 /** Thumbnail готовится штатным browser image processor; original source в img не передаётся. */
 export function ImagePreview(props: Readonly<{media: MediaPreview, onMedia?: ((media: MediaPreview) => void) | undefined}>) {
+  const element = useRef<HTMLElement | null>(null)
+  const [active, setActive] = useState(false)
+  const [dimensions, setDimensions] = useState<Readonly<{width: number, height: number}> | null>(null)
   const [prepared, setPrepared] = useState<PreparedMediaImage | null>(null)
   const [error, setError] = useState("")
   const [attempt, setAttempt] = useState(0)
   const host = useContext(MediaHostContext)
+  useLayoutEffect(() => {
+    const target = element.current
+    if (!target) return
+    const viewports: HTMLElement[] = []
+    let parent = target.parentElement
+    while (parent) {
+      if (parent.hasAttribute("data-chat-messages")) viewports.push(parent)
+      parent = parent.parentElement
+    }
+    // В самостоятельной карточке/overlay lifecycle остаётся прежним. В истории
+    // видимость проверяется во всех enclosing viewport, включая вложенные группы.
+    if (viewports.length === 0) {setActive(true); return}
+    let disposed = false
+    let pending = false
+    const schedule = () => {
+      if (pending || disposed) return
+      pending = true
+      queueMicrotask(() => {
+        pending = false
+        if (disposed) return
+        setActive(viewports.every(viewport => {
+          const box = viewport.getLayoutRect()
+          const rect = target.getLayoutRect(viewport)
+          return box !== null && rect !== null && box.width > 0 && box.height > 0 &&
+            rect.bottom > 0 && rect.top < box.height && rect.right > 0 && rect.left < box.width
+        }))
+      })
+    }
+    const releases = viewports.flatMap(viewport => [
+      observeElementLayout(viewport, schedule),
+      observeElementLayout(target, schedule, {relativeTo: viewport}),
+    ])
+    schedule()
+    return () => {disposed = true; for (const release of releases) release()}
+  }, [])
+  useEffect(() => {setDimensions(null)}, [props.media.source])
   useEffect(() => {
+    setPrepared(null)
+    if (!active) return
     const controller = new AbortController()
     let lease: PreparedMediaImage | null = null
-    setPrepared(null)
     setError("")
     void prepareMediaImage({source: props.media.source, mode: "thumbnail", signal: controller.signal, cache: host?.images,
       loader: signal => loadMediaSource(props.media.source, host, signal)}).then(image => {
       if (controller.signal.aborted) {image?.release(); return}
       lease = image
+      if (image) setDimensions({width: image.width, height: image.height})
       setPrepared(image)
     }, failure => {if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : String(failure))})
     return () => {controller.abort(); lease?.release()}
-  }, [props.media.source, host, attempt])
-  return <div>
-    {prepared ? <PreparedImage media={props.media} image={prepared} onMedia={props.onMedia} /> : null}
-    {!prepared ? <MediaNotice text={error || "Подготовка изображения…"} /> : null}
+  }, [props.media.source, host, attempt, active])
+  const geometry = prepared ?? dimensions
+  return <div ref={value => {element.current = value}}>
+    {geometry ? <PreparedImage
+      media={props.media}
+      image={geometry}
+      active={active}
+      onMedia={props.onMedia}
+    /> : null}
+    {!geometry ? <MediaNotice text={error || "Подготовка изображения…"} /> : null}
     {error ? <Button label="Повторить" onClick={() => {host?.images?.invalidate(props.media.source); setAttempt(attempt + 1)}} /> : null}
   </div>
 }
-function PreparedImage(props: Readonly<{media: MediaPreview, image: PreparedMediaImage, onMedia?: ((media: MediaPreview) => void) | undefined}>) {
+function PreparedImage(props: Readonly<{media: MediaPreview, image: Readonly<{width: number, height: number, url?: string}>, active: boolean, onMedia?: ((media: MediaPreview) => void) | undefined}>) {
   return <button
     type="button"
     aria-label={`Открыть: ${props.media.label}`}
@@ -144,7 +192,7 @@ function PreparedImage(props: Readonly<{media: MediaPreview, image: PreparedMedi
   >
     <img
       data-chat-image=""
-      src={props.image.url}
+      src={props.active ? props.image.url : undefined}
       width={props.image.width}
       height={props.image.height}
       alt={props.media.label}
