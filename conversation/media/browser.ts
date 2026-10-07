@@ -349,6 +349,9 @@ LRU удерживает не более 8 МиБ/64 encoded вариантов 
 если все entries заняты, новый thumbnail выдаётся без retention. Эти текущие
 отображаемые leases учитываются отдельно в uncachedBytes, а invalidate/dispose
 не отзывают URL, ещё используемый другим видимым экземпляром.
+URL остаётся устойчивым вместе с cached encoded Blob после освобождения последнего
+lease; idle URL отзывается при eviction/invalidate/clear/dispose. activeLeases
+считает пользователей, а не удержанные URL. Оригиналы кеш не сохраняет.
 */
 export function createMediaImageCache(): MediaImageCache {
   const entries = new Map<string, CachedImage>()
@@ -392,7 +395,7 @@ export function createMediaImageCache(): MediaImageCache {
       retained = undefined
       current.references--
       activeLeases--
-      if (current.references === 0) {
+      if (current.references === 0 && current.retired) {
         revoke(current)
         retired.delete(current)
       }
