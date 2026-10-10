@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 3,
+  "metadata": {
+    "id": "ce54c68f-90b4-4b35-af1a-fea2d64336a4",
+    "executorId": "e1bcdce2-0511-50da-8bc8-135171e90568",
+    "executorLabel": "Основной",
+    "sessionLabel": "Новая беседа",
+    "sessionLabelSource": "auto",
+    "address": "/chat",
+    "pending": [],
+    "historyComplete": true,
+    "status": "idle",
+    "error": null
+  },
+  "history": {
+    "revision": 1,
+    "total": 0,
+    "lastSequence": 0
+  },
+  "journal": "6ea4b827d2eeb8f5e5f2e0a48da704324a44fbd13c123d5abf91694a356ddeec.e1bcdce2-0511-50da-8bc8-135171e90568.ce54c68f-90b4-4b35-af1a-fea2d64336a4.json.journal.606e914e-2847-43a6-b386-5d1e03554b56.ndjson",
+  "committedBytes": 409,
+  "hash": "ae92d8d1f73b91fc5c498d525bf4634ade723fcc3718bc810098ac3f1a0494e1",
+  "displayHistory": {
+    "revision": 1,
+    "total": 0,
+    "lastSequence": 0
+  }
+}
