@@ -1,8 +1,8 @@
 import {expect, test} from "bun:test"
-import {createRoot} from "@zavx0z/immersive-component"
-import {createDocument, type HTMLButtonElement} from "@zavx0z/immersive-dom"
-import {createDocumentRenderer} from "@zavx0z/immersive-renderer-html"
-import type {CompiledTemplate} from "@zavx0z/immersive-template/compiled"
+import {createRoot} from "@zavx0z/immersive/XReact"
+import {createDocument, type HTMLButtonElement} from "@zavx0z/immersive"
+import {createDocumentRenderer} from "@zavx0z/immersive/renderer/html"
+import type {CompiledTemplate} from "@zavx0z/immersive/XReact/compiled"
 import MessageBubble, {type MessageBubbleInput} from "../index"
 
 test.each([true, false])("панель действий own=%s выровнена к своей стороне, копирование остаётся доступным", async own => {
@@ -12,7 +12,7 @@ test.each([true, false])("панель действий own=%s выровнен�
   document.append(host)
   const root = createRoot(host)
   const renderer = createDocumentRenderer({document, root: host, viewport: {width: 354, height: 300},
-    styleSheets: [await Bun.file(Bun.resolveSync("@zavx0z/immersive-ui-component/theme/theme.css", import.meta.dir)).text()],
+    styleSheets: [await Bun.file(Bun.resolveSync("@zavx0z/immersive/ui/theme.css", import.meta.dir)).text()],
   })
   let finish!: () => void
   let calls = 0

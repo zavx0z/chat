@@ -1,7 +1,7 @@
 /** Имя беседы не зависит от вида автора и backend приложения. */
-import {useState} from "@zavx0z/immersive-component"
-import IconButton from "@zavx0z/immersive-ui-component-button-icon"
-import svgIcon from "@zavx0z/immersive-tech-svg-encode"
+import {useState} from "@zavx0z/immersive/XReact"
+import {IconButton} from "@zavx0z/immersive/ui"
+import svgIcon from "@zavx0z/immersive/ui/svg"
 import {ConversationNameEditor} from "./src/name-editor"
 import type {ChatConversationHeader as Contract} from "./contract"
 export type {ChatConversationHeader} from "./contract"

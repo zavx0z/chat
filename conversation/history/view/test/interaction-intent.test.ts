@@ -1,9 +1,9 @@
 import {expect, test} from "bun:test"
-import {createRoot} from "@zavx0z/immersive-component"
-import {createDocument, Event, KeyboardEvent, type HTMLElement} from "@zavx0z/immersive-dom"
-import {flushDocumentLayoutObservers} from "@zavx0z/immersive-dom/geometry"
-import {createDocumentRenderer, createDocumentInteractionController} from "@zavx0z/immersive-renderer-html"
-import type {CompiledTemplate} from "@zavx0z/immersive-template/compiled"
+import {createRoot} from "@zavx0z/immersive/XReact"
+import {createDocument, Event, KeyboardEvent, type HTMLElement} from "@zavx0z/immersive"
+import {flushDocumentLayoutObservers} from "@zavx0z/immersive"
+import {createDocumentRenderer, createDocumentInteractionController} from "@zavx0z/immersive/renderer/html"
+import type {CompiledTemplate} from "@zavx0z/immersive/XReact/compiled"
 import Fixture, {type Props} from "./interaction-intent-fixture"
 
 async function fixture() {
@@ -11,7 +11,7 @@ async function fixture() {
   const host = document.createElement("div")
   document.append(host)
   const root = createRoot(host)
-  const theme = await Bun.file(new URL(import.meta.resolve("@zavx0z/immersive-ui-component/theme/theme.css"))).text()
+  const theme = await Bun.file(new URL(import.meta.resolve("@zavx0z/immersive/ui/theme.css"))).text()
   const renderer = createDocumentRenderer({document, root: host, viewport: {width: 360, height: 320}, styleSheets: [theme]})
   const input = createDocumentInteractionController({document})
   let dirty = true

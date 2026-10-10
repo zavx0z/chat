@@ -1,7 +1,7 @@
 import {expect, test} from "bun:test"
-import {createRoot} from "@zavx0z/immersive-component"
-import {createDocument, type HTMLButtonElement} from "@zavx0z/immersive-dom"
-import type {CompiledTemplate} from "@zavx0z/immersive-template/compiled"
+import {createRoot} from "@zavx0z/immersive/XReact"
+import {createDocument, type HTMLButtonElement} from "@zavx0z/immersive"
+import type {CompiledTemplate} from "@zavx0z/immersive/XReact/compiled"
 import List, {type ChatConversationList} from "../index"
 
 test("корзина восстанавливает точную беседу; purge требует отдельного управляемого подтверждения", async () => {

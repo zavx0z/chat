@@ -1,4 +1,4 @@
-import {createContext} from "@zavx0z/immersive-component"
+import {createContext} from "@zavx0z/immersive/XReact"
 import type {MediaAttachment, MediaImageCache} from "./browser"
 import type {MediaPreview} from "../message/view/contract/preview"
 

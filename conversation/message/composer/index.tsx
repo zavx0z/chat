@@ -1,8 +1,8 @@
 /** Общий composer сообщения: стандартный textarea/IME, отправка и host slots. */
-import {useRef, useState} from "@zavx0z/immersive-component"
-import Button from "@zavx0z/immersive-ui-component-button-basic"
-import IconButton from "@zavx0z/immersive-ui-component-button-icon"
-import svgIcon from "@zavx0z/immersive-tech-svg-encode"
+import {useRef, useState} from "@zavx0z/immersive/XReact"
+import {Button} from "@zavx0z/immersive/ui"
+import {IconButton} from "@zavx0z/immersive/ui"
+import svgIcon from "@zavx0z/immersive/ui/svg"
 import type {ChatMessageComposer as Contract} from "./contract"
 import {ImagePreview, type MediaPreview} from "../view"
 import type {MediaDraftAttachment} from "../../media/browser"

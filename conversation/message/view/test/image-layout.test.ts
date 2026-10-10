@@ -1,8 +1,8 @@
 import {expect, test} from "bun:test"
-import {component, provideContext, createRoot} from "@zavx0z/immersive-component"
-import {createDocument, InputEvent, type HTMLInputElement, type HTMLImageElement, type HTMLButtonElement} from "@zavx0z/immersive-dom"
-import {createDocumentRenderer, createDocumentInteractionController, hitTestProjection} from "@zavx0z/immersive-renderer-html"
-import type {CompiledTemplate} from "@zavx0z/immersive-template/compiled"
+import {component, provideContext, createRoot} from "@zavx0z/immersive/XReact"
+import {createDocument, InputEvent, type HTMLInputElement, type HTMLImageElement, type HTMLButtonElement} from "@zavx0z/immersive"
+import {createDocumentRenderer, createDocumentInteractionController, hitTestProjection} from "@zavx0z/immersive/renderer/html"
+import type {CompiledTemplate} from "@zavx0z/immersive/XReact/compiled"
 import MessageView, {ImagePreview, MediaOverlay, MediaHostContext, type MediaHost, type MediaPreview} from "../index"
 
 /** Host processor контролирует только готовый raster; Component/DOM/layout/hit testing настоящие. */
@@ -209,7 +209,7 @@ test("Markdown Retry использует реальную тему Button с ч
   document.append(container)
   const root = createRoot(container)
   const renderer = createDocumentRenderer({document, root: container, viewport: {width: 360, height: 400},
-    styleSheets: [await Bun.file(Bun.resolveSync("@zavx0z/immersive-ui-component/theme/theme.css", import.meta.dir)).text()],
+    styleSheets: [await Bun.file(Bun.resolveSync("@zavx0z/immersive/ui/theme.css", import.meta.dir)).text()],
   })
   const host: MediaHost = {async load() {throw new Error("HTTP 404")}, async download() {}}
   const props = {content: {type: "text" as const, text: "![Ошибка](https://example.com/missing.png)\n\n[Открыть источник](https://example.com/source)"}}

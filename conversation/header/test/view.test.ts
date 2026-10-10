@@ -1,7 +1,7 @@
 import {expect, test} from "bun:test"
-import {createRoot} from "@zavx0z/immersive-component"
-import {createDocument, InputEvent, type HTMLButtonElement, type HTMLInputElement} from "@zavx0z/immersive-dom"
-import type {CompiledTemplate} from "@zavx0z/immersive-template/compiled"
+import {createRoot} from "@zavx0z/immersive/XReact"
+import {createDocument, InputEvent, type HTMLButtonElement, type HTMLInputElement} from "@zavx0z/immersive"
+import type {CompiledTemplate} from "@zavx0z/immersive/XReact/compiled"
 import Header, {type ChatConversationHeader} from "../index"
 import List, {type ChatConversationList} from "../../list"
 

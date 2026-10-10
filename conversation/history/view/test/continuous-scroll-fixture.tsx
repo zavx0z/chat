@@ -1,5 +1,5 @@
 import HistoryView from "../index"
-import Button from "@zavx0z/immersive-ui-component-button-basic"
+import {Button} from "@zavx0z/immersive/ui"
 import type {ChatHistoryView} from "../contract"
 
 export type Row = Readonly<{id: string, height: number, group?: boolean}>

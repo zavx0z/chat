@@ -24,41 +24,13 @@
     "typecheck": "tsc --noEmit --pretty false"
   },
   "dependencies": {
-    "@zavx0z/immersive-component": "^0.0.0",
-    "@zavx0z/immersive-dom": "^0.0.0",
-    "@zavx0z/immersive-markdown": "^0.0.0",
-    "@zavx0z/immersive-ui-component": "^0.0.0",
-    "@zavx0z/immersive-jsx": "^0.0.0",
-    "@zavx0z/immersive-jsx-compiler-session": "^0.0.0",
-    "@zavx0z/immersive-tech-svg-encode": "^0.0.0",
-    "@zavx0z/immersive-ui-component-button-basic": "^0.0.0",
-    "@zavx0z/immersive-ui-component-button-icon": "^0.0.0",
-    "@zavx0z/immersive-ui-component-field-text": "^0.0.0",
-    "@zavx0z/immersive-ui-component-view-code-editor": "^0.0.0",
-    "@zavx0z/immersive-ui-component-field-slider": "^0.0.0"
+    "@zavx0z/immersive": "^0.0.0"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
-    "typescript": "^7.0.2",
-    "@zavx0z/immersive-jsx-compiler-bun": "^0.0.0",
-    "@zavx0z/immersive-template": "^0.0.0",
-    "@zavx0z/immersive-renderer-html": "^0.0.0"
+    "typescript": "^7.0.2"
   },
   "overrides": {
-    "@zavx0z/immersive-component": "link:@zavx0z/immersive-component",
-    "@zavx0z/immersive-dom": "link:@zavx0z/immersive-dom",
-    "@zavx0z/immersive-markdown": "link:@zavx0z/immersive-markdown",
-    "@zavx0z/immersive-ui-component": "link:@zavx0z/immersive-ui-component",
-    "@zavx0z/immersive-jsx": "link:@zavx0z/immersive-jsx",
-    "@zavx0z/immersive-jsx-compiler-session": "link:@zavx0z/immersive-jsx-compiler-session",
-    "@zavx0z/immersive-tech-svg-encode": "link:@zavx0z/immersive-tech-svg-encode",
-    "@zavx0z/immersive-ui-component-button-basic": "link:@zavx0z/immersive-ui-component-button-basic",
-    "@zavx0z/immersive-ui-component-button-icon": "link:@zavx0z/immersive-ui-component-button-icon",
-    "@zavx0z/immersive-ui-component-field-text": "link:@zavx0z/immersive-ui-component-field-text",
-    "@zavx0z/immersive-jsx-compiler-bun": "link:@zavx0z/immersive-jsx-compiler-bun",
-    "@zavx0z/immersive-template": "link:@zavx0z/immersive-template",
-    "@zavx0z/immersive-ui-component-view-code-editor": "link:@zavx0z/immersive-ui-component-view-code-editor",
-    "@zavx0z/immersive-renderer-html": "link:@zavx0z/immersive-renderer-html",
-    "@zavx0z/immersive-ui-component-field-slider": "link:@zavx0z/immersive-ui-component-field-slider"
+    "@zavx0z/immersive": "link:@zavx0z/immersive"
   }
 }

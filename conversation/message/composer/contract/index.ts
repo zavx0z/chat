@@ -1,4 +1,4 @@
-import type {JSX} from "@zavx0z/immersive-jsx-compiler-session"
+import type {JSX} from "@zavx0z/immersive/XReact"
 import type {MediaDraftAttachment} from "../../../media/browser"
 
 /** Управляемый ввод сообщения; backend/model/agent state остаётся у host. */

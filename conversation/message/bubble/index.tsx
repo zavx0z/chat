@@ -2,9 +2,9 @@
 Общее представление реплики: собственная — в плашке справа, чужая — в потоке.
 Содержимое, сохранённое время и действие копирования принадлежат host беседы.
 */
-import {useLayoutEffect, useRef, useState} from "@zavx0z/immersive-component"
-import IconButton from "@zavx0z/immersive-ui-component-button-icon"
-import svgIcon from "@zavx0z/immersive-tech-svg-encode"
+import {useLayoutEffect, useRef, useState} from "@zavx0z/immersive/XReact"
+import {IconButton} from "@zavx0z/immersive/ui"
+import svgIcon from "@zavx0z/immersive/ui/svg"
 
 const copyIcon = svgIcon('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="2" fill="none" stroke="#ccc"/><path d="M3 11H2V2h9v1" fill="none" stroke="#ccc"/></svg>')
 

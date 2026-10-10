@@ -1,6 +1,6 @@
-import {useLayoutEffect, useRef, useState} from "@zavx0z/immersive-component"
-import Button from "@zavx0z/immersive-ui-component-button-basic"
-import TextField from "@zavx0z/immersive-ui-component-field-text"
+import {useLayoutEffect, useRef, useState} from "@zavx0z/immersive/XReact"
+import {Button} from "@zavx0z/immersive/ui"
+import {TextField} from "@zavx0z/immersive/ui"
 
 /** Подтверждение сохраняет ввод при отказе, смена identity отзывает поздний ответ. */
 export function ConversationNameEditor(props: Readonly<{

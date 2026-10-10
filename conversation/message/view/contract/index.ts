@@ -1,4 +1,4 @@
-import type {JSX} from "@zavx0z/immersive-jsx-compiler-session"
+import type {JSX} from "@zavx0z/immersive/XReact"
 import type {MessageContent} from "./content"
 import type {MediaPreview} from "./preview"
 

@@ -2,7 +2,7 @@
 Поверхность беседы отделяет сообщения и поле ввода от окружающего приложения.
 Содержимое и действия передаются слотами в тот же semantic Document.
 */
-import type {JSX} from "@zavx0z/immersive-jsx-compiler-session"
+import type {JSX} from "@zavx0z/immersive/XReact"
 
 export default function ConversationSurface(props: Readonly<{label: string}>): JSX.Element {
   return <section

@@ -1,8 +1,8 @@
 /** Имена и действия над беседами; данные и авторизация принадлежат backend. */
-import {useLayoutEffect, useRef, useState} from "@zavx0z/immersive-component"
-import Button from "@zavx0z/immersive-ui-component-button-basic"
-import IconButton from "@zavx0z/immersive-ui-component-button-icon"
-import svgIcon from "@zavx0z/immersive-tech-svg-encode"
+import {useLayoutEffect, useRef, useState} from "@zavx0z/immersive/XReact"
+import {Button} from "@zavx0z/immersive/ui"
+import {IconButton} from "@zavx0z/immersive/ui"
+import svgIcon from "@zavx0z/immersive/ui/svg"
 import {ConversationNameEditor} from "../header/src/name-editor"
 import type {ChatConversationList as Contract} from "./contract"
 export type {ChatConversationList} from "./contract"

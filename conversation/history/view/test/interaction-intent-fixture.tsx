@@ -1,5 +1,5 @@
 import HistoryView from "../index"
-import Button from "@zavx0z/immersive-ui-component-button-basic"
+import {Button} from "@zavx0z/immersive/ui"
 import type {HistoryViewport} from "../../contract/viewport"
 
 type Snapshot = Readonly<{rows: readonly {header: {id: string}}[], total: number, following: boolean, after: null, unread: number, loading: false}>

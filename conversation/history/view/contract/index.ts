@@ -1,4 +1,4 @@
-import type {JSX} from "@zavx0z/immersive-jsx-compiler-session"
+import type {JSX} from "@zavx0z/immersive/XReact"
 import type {HistoryViewport} from "../../contract/viewport"
 
 /** Локальный viewport ограниченной истории, независимый от транспорта и автора записей. */

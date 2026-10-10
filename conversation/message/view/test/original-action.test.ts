@@ -1,7 +1,7 @@
 import {expect, test} from "bun:test"
-import {component, provideContext, createRoot} from "@zavx0z/immersive-component"
-import {createDocument, type HTMLButtonElement} from "@zavx0z/immersive-dom"
-import type {CompiledTemplate} from "@zavx0z/immersive-template/compiled"
+import {component, provideContext, createRoot} from "@zavx0z/immersive/XReact"
+import {createDocument, type HTMLButtonElement} from "@zavx0z/immersive"
+import type {CompiledTemplate} from "@zavx0z/immersive/XReact/compiled"
 import {MediaOverlay, MediaHostContext, type MediaHost, type MediaPreview} from "../index"
 
 function fixture(openOriginal?: MediaHost["openOriginal"]) {

@@ -1,8 +1,8 @@
 import {expect, test} from "bun:test"
-import {createRoot} from "@zavx0z/immersive-component"
-import {createDocument, ClipboardEvent, DataTransfer, DragEvent, releaseDataTransfer, type HTMLButtonElement} from "@zavx0z/immersive-dom"
-import {createDocumentRenderer} from "@zavx0z/immersive-renderer-html"
-import type {CompiledTemplate} from "@zavx0z/immersive-template/compiled"
+import {createRoot} from "@zavx0z/immersive/XReact"
+import {createDocument, ClipboardEvent, DataTransfer, DragEvent, releaseDataTransfer, type HTMLButtonElement} from "@zavx0z/immersive"
+import {createDocumentRenderer} from "@zavx0z/immersive/renderer/html"
+import type {CompiledTemplate} from "@zavx0z/immersive/XReact/compiled"
 import Composer, {type ChatMessageComposer} from "../index"
 
 test("IconButton вложения и файловый drop на textarea используют общие callbacks без отправки сообщения", async () => {

@@ -1,9 +1,9 @@
 import {expect, test} from "bun:test"
-import {createRoot} from "@zavx0z/immersive-component"
-import {createDocument, HTMLElement} from "@zavx0z/immersive-dom"
-import {flushDocumentLayoutObservers} from "@zavx0z/immersive-dom/geometry"
-import {createDocumentRenderer, createDocumentInteractionController} from "@zavx0z/immersive-renderer-html"
-import type {CompiledTemplate} from "@zavx0z/immersive-template/compiled"
+import {createRoot} from "@zavx0z/immersive/XReact"
+import {createDocument, HTMLElement} from "@zavx0z/immersive"
+import {flushDocumentLayoutObservers} from "@zavx0z/immersive"
+import {createDocumentRenderer, createDocumentInteractionController} from "@zavx0z/immersive/renderer/html"
+import type {CompiledTemplate} from "@zavx0z/immersive/XReact/compiled"
 import Fixture, {type Props} from "./fixture"
 
 /** Считаем только чтения production viewport; observer читает рамки через свой public owner. */

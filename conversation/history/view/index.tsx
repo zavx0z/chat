@@ -4,9 +4,9 @@
 при изменении раскладки или явном переходе к хвосту. Неизменные сообщения
 не требуют DOM-изменений или дополнительных записей scrollTop после wheel.
 */
-import Button from "@zavx0z/immersive-ui-component-button-basic"
-import {useLayoutEffect, useRef} from "@zavx0z/immersive-component"
-import {observeElementLayout} from "@zavx0z/immersive-dom"
+import {Button} from "@zavx0z/immersive/ui"
+import {useLayoutEffect, useRef} from "@zavx0z/immersive/XReact"
+import {observeElementLayout} from "@zavx0z/immersive"
 import type {HistoryAnchor} from "./src/history-anchor"
 import type {ChatHistoryView as Contract} from "./contract"
 import type {HistoryViewport} from "../contract/viewport"

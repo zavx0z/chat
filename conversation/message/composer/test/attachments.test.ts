@@ -1,8 +1,8 @@
 import {expect, test} from "bun:test"
-import {createRoot} from "@zavx0z/immersive-component"
-import {createDocument, type HTMLButtonElement} from "@zavx0z/immersive-dom"
-import {createDocumentRenderer} from "@zavx0z/immersive-renderer-html"
-import type {CompiledTemplate} from "@zavx0z/immersive-template/compiled"
+import {createRoot} from "@zavx0z/immersive/XReact"
+import {createDocument, type HTMLButtonElement} from "@zavx0z/immersive"
+import {createDocumentRenderer} from "@zavx0z/immersive/renderer/html"
+import type {CompiledTemplate} from "@zavx0z/immersive/XReact/compiled"
 import Composer, {type ChatMessageComposer} from "../index"
 
 /** Controlled host processing: layout test требует восемь готовых preview, не notices. */

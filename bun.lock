@@ -5,44 +5,16 @@
     "": {
       "name": "@zavx0z/chat",
       "dependencies": {
-        "@zavx0z/immersive-component": "^0.0.0",
-        "@zavx0z/immersive-dom": "^0.0.0",
-        "@zavx0z/immersive-jsx": "^0.0.0",
-        "@zavx0z/immersive-jsx-compiler-session": "^0.0.0",
-        "@zavx0z/immersive-markdown": "^0.0.0",
-        "@zavx0z/immersive-tech-svg-encode": "^0.0.0",
-        "@zavx0z/immersive-ui-component": "^0.0.0",
-        "@zavx0z/immersive-ui-component-button-basic": "^0.0.0",
-        "@zavx0z/immersive-ui-component-button-icon": "^0.0.0",
-        "@zavx0z/immersive-ui-component-field-slider": "^0.0.0",
-        "@zavx0z/immersive-ui-component-field-text": "^0.0.0",
-        "@zavx0z/immersive-ui-component-view-code-editor": "^0.0.0",
+        "@zavx0z/immersive": "^0.0.0",
       },
       "devDependencies": {
         "@types/bun": "^1.4.2",
-        "@zavx0z/immersive-jsx-compiler-bun": "^0.0.0",
-        "@zavx0z/immersive-renderer-html": "^0.0.0",
-        "@zavx0z/immersive-template": "^0.0.0",
         "typescript": "^7.0.2",
       },
     },
   },
   "overrides": {
-    "@zavx0z/immersive-component": "link:@zavx0z/immersive-component",
-    "@zavx0z/immersive-dom": "link:@zavx0z/immersive-dom",
-    "@zavx0z/immersive-jsx": "link:@zavx0z/immersive-jsx",
-    "@zavx0z/immersive-jsx-compiler-bun": "link:@zavx0z/immersive-jsx-compiler-bun",
-    "@zavx0z/immersive-jsx-compiler-session": "link:@zavx0z/immersive-jsx-compiler-session",
-    "@zavx0z/immersive-markdown": "link:@zavx0z/immersive-markdown",
-    "@zavx0z/immersive-renderer-html": "link:@zavx0z/immersive-renderer-html",
-    "@zavx0z/immersive-tech-svg-encode": "link:@zavx0z/immersive-tech-svg-encode",
-    "@zavx0z/immersive-template": "link:@zavx0z/immersive-template",
-    "@zavx0z/immersive-ui-component": "link:@zavx0z/immersive-ui-component",
-    "@zavx0z/immersive-ui-component-button-basic": "link:@zavx0z/immersive-ui-component-button-basic",
-    "@zavx0z/immersive-ui-component-button-icon": "link:@zavx0z/immersive-ui-component-button-icon",
-    "@zavx0z/immersive-ui-component-field-slider": "link:@zavx0z/immersive-ui-component-field-slider",
-    "@zavx0z/immersive-ui-component-field-text": "link:@zavx0z/immersive-ui-component-field-text",
-    "@zavx0z/immersive-ui-component-view-code-editor": "link:@zavx0z/immersive-ui-component-view-code-editor",
+    "@zavx0z/immersive": "link:@zavx0z/immersive",
   },
   "packages": {
     "@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
@@ -89,35 +61,7 @@
 
     "@typescript/typescript-win32-x64": ["@typescript/typescript-win32-x64@7.0.2", "", { "os": "win32", "cpu": "x64" }, "sha512-0BQ3HkAHHlKLSp1qRvf3SUhGpGsDuhB/jgFw75guyqbxJqEaS0Cw/VFO8i2nHglJUzQCRtMMR/IBAKE3ETMC4g=="],
 
-    "@zavx0z/immersive-component": ["@zavx0z/immersive-component@link:@zavx0z/immersive-component", {}],
-
-    "@zavx0z/immersive-dom": ["@zavx0z/immersive-dom@link:@zavx0z/immersive-dom", {}],
-
-    "@zavx0z/immersive-jsx": ["@zavx0z/immersive-jsx@link:@zavx0z/immersive-jsx", {}],
-
-    "@zavx0z/immersive-jsx-compiler-bun": ["@zavx0z/immersive-jsx-compiler-bun@link:@zavx0z/immersive-jsx-compiler-bun", {}],
-
-    "@zavx0z/immersive-jsx-compiler-session": ["@zavx0z/immersive-jsx-compiler-session@link:@zavx0z/immersive-jsx-compiler-session", {}],
-
-    "@zavx0z/immersive-markdown": ["@zavx0z/immersive-markdown@link:@zavx0z/immersive-markdown", {}],
-
-    "@zavx0z/immersive-renderer-html": ["@zavx0z/immersive-renderer-html@link:@zavx0z/immersive-renderer-html", {}],
-
-    "@zavx0z/immersive-tech-svg-encode": ["@zavx0z/immersive-tech-svg-encode@link:@zavx0z/immersive-tech-svg-encode", {}],
-
-    "@zavx0z/immersive-template": ["@zavx0z/immersive-template@link:@zavx0z/immersive-template", {}],
-
-    "@zavx0z/immersive-ui-component": ["@zavx0z/immersive-ui-component@link:@zavx0z/immersive-ui-component", {}],
-
-    "@zavx0z/immersive-ui-component-button-basic": ["@zavx0z/immersive-ui-component-button-basic@link:@zavx0z/immersive-ui-component-button-basic", {}],
-
-    "@zavx0z/immersive-ui-component-button-icon": ["@zavx0z/immersive-ui-component-button-icon@link:@zavx0z/immersive-ui-component-button-icon", {}],
-
-    "@zavx0z/immersive-ui-component-field-slider": ["@zavx0z/immersive-ui-component-field-slider@link:@zavx0z/immersive-ui-component-field-slider", {}],
-
-    "@zavx0z/immersive-ui-component-field-text": ["@zavx0z/immersive-ui-component-field-text@link:@zavx0z/immersive-ui-component-field-text", {}],
-
-    "@zavx0z/immersive-ui-component-view-code-editor": ["@zavx0z/immersive-ui-component-view-code-editor@link:@zavx0z/immersive-ui-component-view-code-editor", {}],
+    "@zavx0z/immersive": ["@zavx0z/immersive@link:@zavx0z/immersive", {}],
 
     "bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
 

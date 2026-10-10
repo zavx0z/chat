@@ -1,8 +1,8 @@
 /** Предпросмотр изображения, файла или аудио внутри текущей беседы. */
-import {useContext, useEffect, useRef, useState} from "@zavx0z/immersive-component"
-import {observeElementLayout} from "@zavx0z/immersive-dom"
-import Button from "@zavx0z/immersive-ui-component-button-basic"
-import SliderField from "@zavx0z/immersive-ui-component-field-slider"
+import {useContext, useEffect, useRef, useState} from "@zavx0z/immersive/XReact"
+import {observeElementLayout} from "@zavx0z/immersive"
+import {Button} from "@zavx0z/immersive/ui"
+import {SliderField} from "@zavx0z/immersive/ui"
 import {prepareMediaImage, type PreparedMediaImage} from "../../../media/browser"
 import {MediaHostContext, loadMediaSource, type MediaAudioPlayback, type MediaAudioState} from "../../../media/host"
 import type {MediaPreview} from "../contract/preview"

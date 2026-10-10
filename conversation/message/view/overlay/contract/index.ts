@@ -1,4 +1,4 @@
-import type {JSX} from "@zavx0z/immersive-jsx-compiler-session"
+import type {JSX} from "@zavx0z/immersive/XReact"
 import type {MediaPreview} from "../../contract/preview"
 
 /** Контракт открытого предпросмотра медиа. */

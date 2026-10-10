@@ -1,11 +1,11 @@
 /** Текст, изображения и embedded resources сообщения в общем Document, независимо от backend. */
-import {component, provideContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState} from "@zavx0z/immersive-component"
-import {Markdown, MarkdownMediaContext, type MarkdownProps, type MarkdownMediaHost, type MarkdownImageSource} from "@zavx0z/immersive-markdown"
+import {component, provideContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState} from "@zavx0z/immersive/XReact"
+import {Markdown, MarkdownMediaContext, type MarkdownProps, type MarkdownMediaHost, type MarkdownImageSource} from "@zavx0z/immersive/markdown"
 import {prepareMediaImage, type MediaAttachment, type PreparedMediaImage} from "../../media/browser"
-import CodeEditor from "@zavx0z/immersive-ui-component-view-code-editor"
-import Button from "@zavx0z/immersive-ui-component-button-basic"
-import type {CompiledTemplate} from "@zavx0z/immersive-template/compiled"
-import type {JSX} from "@zavx0z/immersive-jsx-compiler-session"
+import {CodeEditor} from "@zavx0z/immersive/ui"
+import {Button} from "@zavx0z/immersive/ui"
+import type {CompiledTemplate} from "@zavx0z/immersive/XReact/compiled"
+import type {JSX} from "@zavx0z/immersive/XReact"
 import {MediaHostContext, loadMediaSource} from "../../media/host"
 export {MediaHostContext, mediaAttachmentBlob, downloadMediaBlob} from "../../media/host"
 export type {MediaHost, MediaSource, MediaAudioPlayback, MediaAudioState} from "../../media/host"
@@ -17,7 +17,7 @@ export type {ChatMediaOverlay} from "./overlay/contract"
 export type {MessageContent} from "./contract/content"
 export type {MediaPreview} from "./contract/preview"
 import {MediaNotice, MediaDownload} from "./src/media-controls"
-import {observeElementLayout} from "@zavx0z/immersive-dom"
+import {observeElementLayout} from "@zavx0z/immersive"
 
 export default function ChatMessageView(props: Contract.Input) {
   const block = props.content
